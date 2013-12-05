@@ -126,6 +126,7 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 	var err error
 
 	tsFmt := "Jan 02 15:04:05"
+	tsFmt2 := "Jan  2 15:04:05"
 	// len(fmt)
 	tsFmtLen := 15
 
@@ -136,6 +137,9 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 
 	sub := p.buff[p.cursor : tsFmtLen+p.cursor]
 	ts, err = time.Parse(tsFmt, string(sub))
+	if err != nil {
+		ts, err = time.Parse(tsFmt2, string(sub))
+	}
 	if err != nil {
 		p.cursor = len(sub)
 
