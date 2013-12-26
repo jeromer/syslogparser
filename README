@@ -50,6 +50,8 @@ You should see
     facility  : 4
     severity  : 2
 
+> To avoid the limit of 32 chars in the tag, use `p.SetStrict(false)`
+
 Parsing an RFC 5424 syslog message
 ----------------------------------
 
