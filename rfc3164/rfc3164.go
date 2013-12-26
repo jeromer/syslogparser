@@ -18,6 +18,7 @@ type Parser struct {
 	version  int
 	header   header
 	message  rfc3164message
+	strict   bool
 }
 
 type header struct {
@@ -35,7 +36,12 @@ func NewParser(buff []byte) *Parser {
 		buff:   buff,
 		cursor: 0,
 		l:      len(buff),
+		strict: true,
 	}
+}
+
+func (p *Parser) SetStrict(strict bool) {
+	p.strict = strict
 }
 
 func (p *Parser) Parse() error {
@@ -194,7 +200,7 @@ func (p *Parser) parseTag() (string, error) {
 		endOfTag = (b == ':' || b == ' ')
 		tooLong = (p.cursor > maxLen)
 
-		if tooLong {
+		if p.strict && tooLong {
 			return "", ErrTagTooLong
 		}
 

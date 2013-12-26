@@ -30,6 +30,7 @@ func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
 		buff:   buff,
 		cursor: 0,
 		l:      len(buff),
+		strict: true,
 	}
 
 	c.Assert(p, DeepEquals, expectedP)
@@ -131,6 +132,16 @@ func (s *Rfc3164TestSuite) TestParseTag_TooLong(c *C) {
 	tag := ""
 
 	s.assertTag(c, tag, buff, len(aaa)+1, ErrTagTooLong)
+}
+
+func (s *Rfc3164TestSuite) TestParseTag_TooLongNonStrict(c *C) {
+	// In some cases the limit of 32 chars is exceeded, like syslogd at OSX
+
+	aaa := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	buff := []byte(aaa + "[10]:")
+	tag := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+	s.assertTagNonStrict(c, tag, buff, len(buff), nil)
 }
 
 func (s *Rfc3164TestSuite) TestParseTag_Pid(c *C) {
@@ -250,6 +261,15 @@ func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC in
 
 func (s *Rfc3164TestSuite) assertTag(c *C, t string, b []byte, expC int, e error) {
 	p := NewParser(b)
+	obtained, err := p.parseTag()
+	c.Assert(obtained, Equals, t)
+	c.Assert(p.cursor, Equals, expC)
+	c.Assert(err, Equals, e)
+}
+
+func (s *Rfc3164TestSuite) assertTagNonStrict(c *C, t string, b []byte, expC int, e error) {
+	p := NewParser(b)
+	p.SetStrict(false)
 	obtained, err := p.parseTag()
 	c.Assert(obtained, Equals, t)
 	c.Assert(p.cursor, Equals, expC)
