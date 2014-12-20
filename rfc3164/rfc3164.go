@@ -7,6 +7,7 @@ import (
 )
 
 type Parser struct {
+	tsFmts   []string
 	buff     []byte
 	cursor   int
 	l        int
@@ -15,6 +16,13 @@ type Parser struct {
 	header   header
 	message  rfc3164message
 }
+
+var (
+	DefaultTimestampFormats = []string{
+		"Jan 02 15:04:05",
+		"Jan  2 15:04:05",
+	}
+)
 
 type header struct {
 	timestamp time.Time
@@ -27,7 +35,12 @@ type rfc3164message struct {
 }
 
 func NewParser(buff []byte) *Parser {
+	return NewParserWithTimestampFormats(buff, DefaultTimestampFormats)
+}
+
+func NewParserWithTimestampFormats(buff []byte, tsFmts []string) *Parser {
 	return &Parser{
+		tsFmts: tsFmts,
 		buff:   buff,
 		cursor: 0,
 		l:      len(buff),
@@ -123,13 +136,8 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 	var tsFmtLen int
 	var sub []byte
 
-	tsFmts := []string{
-		"Jan 02 15:04:05",
-		"Jan  2 15:04:05",
-	}
-
 	found := false
-	for _, tsFmt := range tsFmts {
+	for _, tsFmt := range p.tsFmts {
 		tsFmtLen = len(tsFmt)
 
 		if p.cursor+tsFmtLen > p.l {

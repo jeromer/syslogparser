@@ -27,6 +27,7 @@ func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
 
 	p := NewParser(buff)
 	expectedP := &Parser{
+		tsFmts: DefaultTimestampFormats,
 		buff:   buff,
 		cursor: 0,
 		l:      len(buff),
@@ -120,6 +121,14 @@ func (s *Rfc3164TestSuite) TestParseTimestamp_Valid(c *C) {
 	ts := time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC)
 
 	s.assertTimestamp(c, ts, buff, len(buff), nil)
+}
+
+func (s *Rfc3164TestSuite) TestParseTimestamp_ValidCustomFormat(c *C) {
+	buff := []byte("2014-10-11T22:14:15Z")
+	ts := time.Date(2014, time.October, 11, 22, 14, 15, 0, time.UTC)
+	tsFmts := []string{"2006-01-02T15:04:05Z"}
+
+	s.assertTimestampWithFormat(c, ts, buff, tsFmts, len(buff), nil)
 }
 
 func (s *Rfc3164TestSuite) TestParseTag_Pid(c *C) {
@@ -230,7 +239,11 @@ func (s *Rfc3164TestSuite) BenchmarkParsemessage(c *C) {
 }
 
 func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC int, e error) {
-	p := NewParser(b)
+	s.assertTimestampWithFormat(c, ts, b, DefaultTimestampFormats, expC, e)
+}
+
+func (s *Rfc3164TestSuite) assertTimestampWithFormat(c *C, ts time.Time, b []byte, expFmt []string, expC int, e error) {
+	p := NewParserWithTimestampFormats(b, expFmt)
 	obtained, err := p.parseTimestamp()
 	c.Assert(obtained, Equals, ts)
 	c.Assert(p.cursor, Equals, expC)
