@@ -54,6 +54,31 @@ func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
 	c.Assert(obtained, DeepEquals, expected)
 }
 
+func (s *Rfc3164TestSuite) TestParseWithout_Hostname(c *C) {
+	buff := []byte("<30>Jun 23 13:17:42 chronyd[1119]: Selected source 192.168.65.1")
+
+	p := NewParser(buff)
+	p.Hostname("testhost")
+
+	err := p.Parse()
+	c.Assert(err, IsNil)
+
+	now := time.Now()
+
+	obtained := p.Dump()
+	expected := syslogparser.LogParts{
+		"timestamp": time.Date(now.Year(), time.June, 23, 13, 17, 42, 0, time.UTC),
+		"hostname":  "testhost",
+		"tag":       "chronyd",
+		"content":   "Selected source 192.168.65.1",
+		"priority":  30,
+		"facility":  3,
+		"severity":  6,
+	}
+
+	c.Assert(obtained, DeepEquals, expected)
+}
+
 func (s *Rfc3164TestSuite) TestParseHeader_Valid(c *C) {
 	buff := []byte("Oct 11 22:14:15 mymachine ")
 	now := time.Now()
