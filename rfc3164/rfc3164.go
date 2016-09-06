@@ -15,6 +15,7 @@ type Parser struct {
 	header   header
 	message  rfc3164message
 	location *time.Location
+	hostname string
 }
 
 type header struct {
@@ -40,6 +41,10 @@ func (p *Parser) Location(location *time.Location) {
 	p.location = location
 }
 
+func (p *Parser) Hostname(hostname string) {
+	p.hostname = hostname
+}
+
 func (p *Parser) Parse() error {
 	pri, err := p.parsePriority()
 	if err != nil {
@@ -51,7 +56,9 @@ func (p *Parser) Parse() error {
 		return err
 	}
 
-	p.cursor++
+	if p.buff[p.cursor] == ' ' {
+		p.cursor++
+	}
 
 	msg, err := p.parsemessage()
 	if err != syslogparser.ErrEOL {
@@ -174,7 +181,11 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 }
 
 func (p *Parser) parseHostname() (string, error) {
-	return syslogparser.ParseHostname(p.buff, &p.cursor, p.l)
+	if p.hostname != "" {
+		return p.hostname, nil
+	} else {
+		return syslogparser.ParseHostname(p.buff, &p.cursor, p.l)
+	}
 }
 
 // http://tools.ietf.org/html/rfc3164#section-4.1.3
