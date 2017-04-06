@@ -139,6 +139,7 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 	tsFmts := []string{
 		"Jan 02 15:04:05",
 		"Jan  2 15:04:05",
+		"2006-01-02T15:04:05.999999-07:00",
 	}
 
 	found := false
