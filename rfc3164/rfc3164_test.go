@@ -216,7 +216,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseTag(c *C) {
 	p := NewParser(buff)
 
 	for i := 0; i < c.N; i++ {
-		_, err := p.parseTag()
+		_, _, err := p.parseTag()
 		if err != nil {
 			panic(err)
 		}
@@ -265,7 +265,7 @@ func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC in
 
 func (s *Rfc3164TestSuite) assertTag(c *C, t string, b []byte, expC int, e error) {
 	p := NewParser(b)
-	obtained, err := p.parseTag()
+	obtained, _, err := p.parseTag()
 	c.Assert(obtained, Equals, t)
 	c.Assert(p.cursor, Equals, expC)
 	c.Assert(err, Equals, e)
@@ -285,4 +285,29 @@ func (s *Rfc3164TestSuite) assertRfc3164message(c *C, msg rfc3164message, b []by
 	c.Assert(err, Equals, e)
 	c.Assert(obtained, Equals, msg)
 	c.Assert(p.cursor, Equals, expC)
+}
+
+func (s *Rfc3164TestSuite) TestParseWithout_Tag(c *C) {
+	buff := []byte("<30>Jun 23 13:17:42 127.0.0.1 java.lang.NullPointerException")
+
+	p := NewParser(buff)
+
+	err := p.Parse()
+	c.Assert(err, IsNil)
+
+	now := time.Now()
+
+	obtained := p.Dump()
+	expected := syslogparser.LogParts{
+		"timestamp": time.Date(now.Year(), time.June, 23, 13, 17, 42, 0, time.UTC),
+		"hostname":  "127.0.0.1",
+		"tag":       "",
+		"content":   "java.lang.NullPointerException",
+		"priority":  30,
+		"facility":  3,
+		"severity":  6,
+	}
+
+	c.Assert(obtained, DeepEquals, expected)
+
 }
