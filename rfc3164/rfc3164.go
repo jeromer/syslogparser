@@ -200,6 +200,9 @@ func (p *Parser) parseTag() (string, error) {
 	from := p.cursor
 
 	for {
+		if p.l <= p.cursor {
+			break
+		}
 		b = p.buff[p.cursor]
 		bracketOpen = (b == '[')
 		endOfTag = (b == ':' || b == ' ')
