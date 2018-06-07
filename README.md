@@ -3,26 +3,24 @@ Syslogparser
 
 This is a syslog parser for the Go programming language.
 
-
 Installing
 ----------
 
 go get github.com/jeromer/syslogparser
 
-
 Supported RFCs
 --------------
 
-RFC 3164 : https://tools.ietf.org/html/rfc3164
-RFC 5424 : https://tools.ietf.org/html/rfc5424
+- [RFC 3164][RFC 3164]
+- [RFC 5424][RFC 5424]
 
-Not all features described in RFCs above are supported but only the most part of
-it. For exaple SDIDs are not supported in RFC5424 and STRUCTURED-DATA are
-parsed as a whole string.
+Not all features described in RFCs above are supported but only the most
+part of it. For exaple `SDID`s are not supported in [RFC 5424][RFC 5424] and
+`STRUCTURED-DATA` are parsed as a whole string.
 
-This parser should solve 80% of use cases. If your use cases are in the 20%
-remaining ones I would recommend you to fully test what you want to achieve and
-provide a patch if you want.
+This parser should solve 80% of use cases. If your use cases are in the
+20% remaining ones I would recommend you to fully test what you want to
+achieve and provide a patch if you want.
 
 Parsing an RFC 3164 syslog message
 ----------------------------------
@@ -80,14 +78,15 @@ You should see
     proc_id : -
     structured_data : [exampleSDID@32473 iut="3" eventSource="Application" eventID="1011"]
 
-
 Running tests
 -------------
 
-make tests
-
+Run `make tests`
 
 Running benchmarks
 ------------------
 
-make benchmarks
+Run `make benchmarks`
+
+[RFC 5424]: https://tools.ietf.org/html/rfc5424
+[RFC 3164]: https://tools.ietf.org/html/rfc3164
