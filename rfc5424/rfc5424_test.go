@@ -2,10 +2,11 @@ package rfc5424
 
 import (
 	"fmt"
-	"github.com/jeromer/syslogparser"
-	. "launchpad.net/gocheck"
 	"testing"
 	"time"
+
+	"github.com/jeromer/syslogparser"
+	. "launchpad.net/gocheck"
 )
 
 // Hooks up gocheck into the gotest runner.
@@ -726,6 +727,21 @@ func (s *Rfc5424TestSuite) BenchmarkParseHeader(c *C) {
 	buff := []byte("<165>1 2003-10-11T22:14:15.003Z mymachine.example.com su 123 ID47")
 
 	p := NewParser(buff)
+
+	for i := 0; i < c.N; i++ {
+		_, err := p.parseHeader()
+		if err != nil {
+			panic(err)
+		}
+
+		p.cursor = 0
+	}
+}
+
+func (s *Rfc5424TestSuite) BenchmarkParseFull(c *C) {
+	msg := `<165>1 2003-10-11T22:14:15.003Z mymachine.example.com evntslog - ID47 [exampleSDID@32473 iut="3" eventSource="Application" eventID="1011"] An application event log entry...`
+
+	p := NewParser([]byte(msg))
 
 	for i := 0; i < c.N; i++ {
 		_, err := p.parseHeader()

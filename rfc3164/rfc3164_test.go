@@ -2,10 +2,11 @@ package rfc3164
 
 import (
 	"bytes"
-	"github.com/jeromer/syslogparser"
-	. "launchpad.net/gocheck"
 	"testing"
 	"time"
+
+	"github.com/jeromer/syslogparser"
+	. "launchpad.net/gocheck"
 )
 
 // Hooks up gocheck into the gotest runner.
@@ -253,6 +254,22 @@ func (s *Rfc3164TestSuite) BenchmarkParsemessage(c *C) {
 
 		p.cursor = 0
 	}
+}
+
+func (s *Rfc3164TestSuite) BenchmarkParseFull(c *C) {
+	msg := "<34>Oct 11 22:14:15 mymachine su: 'su root' failed for lonvick on /dev/pts/8"
+
+	p := NewParser([]byte(msg))
+
+	for i := 0; i < c.N; i++ {
+		_, err := p.parsemessage()
+		if err != syslogparser.ErrEOL {
+			panic(err)
+		}
+
+		p.cursor = 0
+	}
+
 }
 
 func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC int, e error) {
