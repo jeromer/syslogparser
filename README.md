@@ -88,5 +88,17 @@ Running benchmarks
 
 Run `make benchmarks`
 
+    CommonTestSuite.BenchmarkParsePriority   20000000  85.9 ns/op
+    CommonTestSuite.BenchmarkParseVersion    500000000 4.59 ns/op
+    Rfc3164TestSuite.BenchmarkParseFull      10000000  187 ns/op
+    Rfc3164TestSuite.BenchmarkParseHeader    5000000   686 ns/op
+    Rfc3164TestSuite.BenchmarkParseHostname  50000000  43.4 ns/op
+    Rfc3164TestSuite.BenchmarkParseTag       50000000  63.5 ns/op
+    Rfc3164TestSuite.BenchmarkParseTimestamp 5000000   616 ns/op
+    Rfc3164TestSuite.BenchmarkParsemessage   10000000  187 ns/op
+    Rfc5424TestSuite.BenchmarkParseFull      1000000   1345 ns/op
+    Rfc5424TestSuite.BenchmarkParseHeader    1000000   1353 ns/op
+    Rfc5424TestSuite.BenchmarkParseTimestamp 1000000   2045 ns/op
+
 [RFC 5424]: https://tools.ietf.org/html/rfc5424
 [RFC 3164]: https://tools.ietf.org/html/rfc3164
