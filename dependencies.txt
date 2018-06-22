@@ -1,1 +1,1 @@
-launchpad.net/gocheck
+gopkg.in/check.v1
