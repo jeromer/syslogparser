@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jeromer/syslogparser"
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 )
 
 // Hooks up gocheck into the gotest runner.

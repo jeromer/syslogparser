@@ -7,15 +7,16 @@ import (
 )
 
 type Parser struct {
-	buff     []byte
-	cursor   int
-	l        int
-	priority syslogparser.Priority
-	version  int
-	header   header
-	message  rfc3164message
-	location *time.Location
-	hostname string
+	buff          []byte
+	cursor        int
+	l             int
+	priority      syslogparser.Priority
+	version       int
+	header        header
+	message       rfc3164message
+	location      *time.Location
+	hostname      string
+	ParsePriority bool
 }
 
 type header struct {
@@ -30,10 +31,11 @@ type rfc3164message struct {
 
 func NewParser(buff []byte) *Parser {
 	return &Parser{
-		buff:     buff,
-		cursor:   0,
-		l:        len(buff),
-		location: time.UTC,
+		buff:          buff,
+		cursor:        0,
+		l:             len(buff),
+		location:      time.UTC,
+		ParsePriority: true,
 	}
 }
 
@@ -46,9 +48,18 @@ func (p *Parser) Hostname(hostname string) {
 }
 
 func (p *Parser) Parse() error {
-	pri, err := p.parsePriority()
-	if err != nil {
-		return err
+	if p.ParsePriority {
+		pri, err := p.parsePriority()
+		if err != nil {
+			return err
+		}
+		p.priority = pri
+	} else {
+		p.priority = syslogparser.Priority{
+			0,
+			syslogparser.Facility{0},
+			syslogparser.Severity{0},
+		}
 	}
 
 	hdr, err := p.parseHeader()
@@ -65,7 +76,6 @@ func (p *Parser) Parse() error {
 		return err
 	}
 
-	p.priority = pri
 	p.version = syslogparser.NO_VERSION
 	p.header = hdr
 	p.message = msg
@@ -74,15 +84,18 @@ func (p *Parser) Parse() error {
 }
 
 func (p *Parser) Dump() syslogparser.LogParts {
-	return syslogparser.LogParts{
+	parts := syslogparser.LogParts{
 		"timestamp": p.header.timestamp,
 		"hostname":  p.header.hostname,
 		"tag":       p.message.tag,
 		"content":   p.message.content,
-		"priority":  p.priority.P,
-		"facility":  p.priority.F.Value,
-		"severity":  p.priority.S.Value,
 	}
+	if p.ParsePriority {
+		parts["priority"] = p.priority.P
+		parts["facility"] = p.priority.F.Value
+		parts["severity"] = p.priority.S.Value
+	}
+	return parts
 }
 
 func (p *Parser) parsePriority() (syslogparser.Priority, error) {

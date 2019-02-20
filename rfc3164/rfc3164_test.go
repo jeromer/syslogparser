@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jeromer/syslogparser"
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 )
 
 // Hooks up gocheck into the gotest runner.
@@ -28,10 +28,11 @@ func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
 
 	p := NewParser(buff)
 	expectedP := &Parser{
-		buff:     buff,
-		cursor:   0,
-		l:        len(buff),
-		location: time.UTC,
+		buff:          buff,
+		cursor:        0,
+		l:             len(buff),
+		location:      time.UTC,
+		ParsePriority: true,
 	}
 
 	c.Assert(p, DeepEquals, expectedP)
@@ -50,6 +51,37 @@ func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
 		"priority":  34,
 		"facility":  4,
 		"severity":  2,
+	}
+
+	c.Assert(obtained, DeepEquals, expected)
+}
+
+func (s *Rfc3164TestSuite) TestParser_WithoutPriority(c *C) {
+	buff := []byte("Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8")
+
+	p := NewParser(buff)
+	p.ParsePriority = false
+	expectedP := &Parser{
+		buff:          buff,
+		cursor:        0,
+		l:             len(buff),
+		location:      time.UTC,
+		ParsePriority: false,
+	}
+
+	c.Assert(p, DeepEquals, expectedP)
+
+	err := p.Parse()
+	c.Assert(err, IsNil)
+
+	now := time.Now()
+
+	obtained := p.Dump()
+	expected := syslogparser.LogParts{
+		"timestamp": time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
+		"hostname":  "mymachine",
+		"tag":       "very.large.syslog.message.tag",
+		"content":   "'su root' failed for lonvick on /dev/pts/8",
 	}
 
 	c.Assert(obtained, DeepEquals, expected)
