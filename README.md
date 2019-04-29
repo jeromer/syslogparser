@@ -78,6 +78,26 @@ You should see
     proc_id : -
     structured_data : [exampleSDID@32473 iut="3" eventSource="Application" eventID="1011"]
 
+Detecting message format
+------------------------
+
+You can use the `WhichRFC()` function. Like this:
+
+	b := []byte(`<165>1 2003-10-11T22:14:15.003Z ...`)
+	rfc, err := syslogparser.DetectRFC(b)
+	if err != nil {
+		panic(err)
+	}
+
+	switch rfc {
+	case RFC_UNKNOWN:
+		fmt.Println("unknown")
+	case RFC_3164:
+		fmt.Println("3164")
+	case RFC_5424:
+		fmt.Println("5424")
+	}
+
 Running tests
 -------------
 

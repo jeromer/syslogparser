@@ -1,8 +1,9 @@
 package syslogparser
 
 import (
-	. "gopkg.in/check.v1"
 	"testing"
+
+	. "gopkg.in/check.v1"
 )
 
 // Hooks up gocheck into the gotest runner.
@@ -122,6 +123,20 @@ func (s *CommonTestSuite) TestParseHostname_Valid(c *C) {
 	s.assertHostname(c, hostname, buff, start, len(hostname), nil)
 }
 
+func (s *CommonTestSuite) TestDetectRFC_3164(c *C) {
+	p, err := DetectRFC([]byte("<34>Oct 11 22:14:15 ..."))
+
+	c.Assert(err, Equals, nil)
+	c.Assert(p, Equals, RFC(RFC_3164))
+}
+
+func (s *CommonTestSuite) TestDetectRFC_5424(c *C) {
+	p, err := DetectRFC([]byte("<165>1 2003-10-11T22:14:15.003Z ..."))
+
+	c.Assert(err, Equals, nil)
+	c.Assert(p, Equals, RFC(RFC_5424))
+}
+
 func (s *CommonTestSuite) BenchmarkParsePriority(c *C) {
 	buff := []byte("<190>")
 	var start int
@@ -144,6 +159,17 @@ func (s *CommonTestSuite) BenchmarkParseVersion(c *C) {
 	for i := 0; i < c.N; i++ {
 		start = 0
 		_, err := ParseVersion(buff, &start, l)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (s *CommonTestSuite) BenchmarkDetectRFC(c *C) {
+	buff := []byte("<165>1 2003-10-11T22:14:15.003Z ...")
+
+	for i := 0; i < c.N; i++ {
+		_, err := DetectRFC(buff)
 		if err != nil {
 			panic(err)
 		}
