@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/jeromer/syslogparser"
 	"time"
+	"fmt"
 )
 
 type Parser struct {
@@ -126,9 +127,9 @@ func (p *Parser) parsemessage() (rfc3164message, error) {
 	msg := rfc3164message{}
 	var err error
 
-	tag, err := p.parseTag()
+	tag, cursor, err := p.parseTag()
 	if err != nil {
-		return msg, err
+		p.cursor = cursor
 	}
 
 	content, err := p.parseContent()
@@ -202,7 +203,7 @@ func (p *Parser) parseHostname() (string, error) {
 }
 
 // http://tools.ietf.org/html/rfc3164#section-4.1.3
-func (p *Parser) parseTag() (string, error) {
+func (p *Parser) parseTag() (string, int, error) {
 	var b byte
 	var endOfTag bool
 	var bracketOpen bool
@@ -213,6 +214,11 @@ func (p *Parser) parseTag() (string, error) {
 	from := p.cursor
 
 	for {
+		if p.l <= p.cursor {
+			err = fmt.Errorf("No tag")
+			tag = []byte("")
+			break
+		}
 		b = p.buff[p.cursor]
 		bracketOpen = (b == '[')
 		endOfTag = (b == ':' || b == ' ')
@@ -240,7 +246,7 @@ func (p *Parser) parseTag() (string, error) {
 		p.cursor++
 	}
 
-	return string(tag), err
+	return string(tag), from, err
 }
 
 func (p *Parser) parseContent() (string, error) {
