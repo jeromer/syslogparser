@@ -6,219 +6,319 @@ import (
 	"time"
 
 	"github.com/jeromer/syslogparser"
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/suite"
 )
 
-// Hooks up gocheck into the gotest runner.
-func Test(t *testing.T) { TestingT(t) }
-
-type Rfc3164TestSuite struct {
+type RFC3164TestSuite struct {
+	suite.Suite
 }
 
 var (
-	_ = Suite(&Rfc3164TestSuite{})
-
 	// XXX : corresponds to the length of the last tried timestamp format
 	// XXX : Jan  2 15:04:05
 	lastTriedTimestampLen = 15
 )
 
-func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
-	buff := []byte("<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8")
+func (s *RFC3164TestSuite) TestParser_Valid() {
+	buff := []byte(
+		"<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8",
+	)
 
 	p := NewParser(buff)
-	expectedP := &Parser{
-		buff:          buff,
-		cursor:        0,
-		l:             len(buff),
-		location:      time.UTC,
-		ParsePriority: true,
-	}
-
-	c.Assert(p, DeepEquals, expectedP)
+	s.Require().Equal(
+		p,
+		&Parser{
+			buff:          buff,
+			cursor:        0,
+			l:             len(buff),
+			location:      time.UTC,
+			ParsePriority: true,
+		},
+	)
 
 	err := p.Parse()
-	c.Assert(err, IsNil)
-
-	now := time.Now()
-
-	obtained := p.Dump()
-	expected := syslogparser.LogParts{
-		"timestamp": time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
-		"hostname":  "mymachine",
-		"tag":       "very.large.syslog.message.tag",
-		"content":   "'su root' failed for lonvick on /dev/pts/8",
-		"priority":  34,
-		"facility":  4,
-		"severity":  2,
-	}
-
-	c.Assert(obtained, DeepEquals, expected)
+	s.Require().Nil(err)
+	s.Require().Equal(
+		p.Dump(),
+		syslogparser.LogParts{
+			"timestamp": time.Date(
+				time.Now().Year(),
+				time.October,
+				11, 22, 14, 15, 0,
+				time.UTC,
+			),
+			"hostname": "mymachine",
+			"tag":      "very.large.syslog.message.tag",
+			"content":  "'su root' failed for lonvick on /dev/pts/8",
+			"priority": 34,
+			"facility": 4,
+			"severity": 2,
+		},
+	)
 }
 
-func (s *Rfc3164TestSuite) TestParser_WithoutPriority(c *C) {
-	buff := []byte("Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8")
+func (s *RFC3164TestSuite) TestParser_WithoutPriority() {
+	buff := []byte(
+		"Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8",
+	)
 
 	p := NewParser(buff)
 	p.ParsePriority = false
-	expectedP := &Parser{
-		buff:          buff,
-		cursor:        0,
-		l:             len(buff),
-		location:      time.UTC,
-		ParsePriority: false,
-	}
 
-	c.Assert(p, DeepEquals, expectedP)
+	s.Require().Equal(
+		p,
+		&Parser{
+			buff:          buff,
+			cursor:        0,
+			l:             len(buff),
+			location:      time.UTC,
+			ParsePriority: false,
+		},
+	)
 
 	err := p.Parse()
-	c.Assert(err, IsNil)
-
-	now := time.Now()
-
-	obtained := p.Dump()
-	expected := syslogparser.LogParts{
-		"timestamp": time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
-		"hostname":  "mymachine",
-		"tag":       "very.large.syslog.message.tag",
-		"content":   "'su root' failed for lonvick on /dev/pts/8",
-	}
-
-	c.Assert(obtained, DeepEquals, expected)
+	s.Require().Nil(err)
+	s.Require().Equal(
+		p.Dump(),
+		syslogparser.LogParts{
+			"timestamp": time.Date(
+				time.Now().Year(),
+				time.October,
+				11, 22, 14, 15, 0,
+				time.UTC,
+			),
+			"hostname": "mymachine",
+			"tag":      "very.large.syslog.message.tag",
+			"content":  "'su root' failed for lonvick on /dev/pts/8",
+		},
+	)
 }
 
-func (s *Rfc3164TestSuite) TestParseWithout_Hostname(c *C) {
-	buff := []byte("<30>Jun 23 13:17:42 chronyd[1119]: Selected source 192.168.65.1")
+func (s *RFC3164TestSuite) TestParseWithout_Hostname() {
+	buff := []byte(
+		"<30>Jun 23 13:17:42 chronyd[1119]: Selected source 192.168.65.1",
+	)
 
 	p := NewParser(buff)
 	p.Hostname("testhost")
 
 	err := p.Parse()
-	c.Assert(err, IsNil)
+	s.Require().Nil(err)
 
-	now := time.Now()
+	s.Require().Equal(
+		p.Dump(),
+		syslogparser.LogParts{
+			"timestamp": time.Date(
+				time.Now().Year(),
+				time.June,
+				23, 13, 17, 42, 0,
+				time.UTC,
+			),
+			"hostname": "testhost",
+			"tag":      "chronyd",
+			"content":  "Selected source 192.168.65.1",
+			"priority": 30,
+			"facility": 3,
+			"severity": 6,
+		},
+	)
+}
 
-	obtained := p.Dump()
-	expected := syslogparser.LogParts{
-		"timestamp": time.Date(now.Year(), time.June, 23, 13, 17, 42, 0, time.UTC),
-		"hostname":  "testhost",
-		"tag":       "chronyd",
-		"content":   "Selected source 192.168.65.1",
-		"priority":  30,
-		"facility":  3,
-		"severity":  6,
+func (s *RFC3164TestSuite) TestParseHeader() {
+	testCases := []struct {
+		description       string
+		input             []byte
+		expectedHdr       header
+		expectedCursorPos int
+		expectedErr       error
+	}{
+		{
+			description: "valid headers",
+			input:       []byte("Oct 11 22:14:15 mymachine "),
+			expectedHdr: header{
+				hostname: "mymachine",
+				timestamp: time.Date(
+					time.Now().Year(),
+					time.October,
+					11, 22, 14, 15, 0,
+					time.UTC,
+				),
+			},
+			expectedCursorPos: 25,
+			expectedErr:       nil,
+		},
+		{
+			description:       "invalid timestamp",
+			input:             []byte("Oct 34 32:72:82 mymachine "),
+			expectedHdr:       header{},
+			expectedCursorPos: lastTriedTimestampLen + 1,
+			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
+		},
 	}
 
-	c.Assert(obtained, DeepEquals, expected)
-}
+	for _, tc := range testCases {
+		p := NewParser(tc.input)
+		obtained, err := p.parseHeader()
 
-func (s *Rfc3164TestSuite) TestParseHeader_Valid(c *C) {
-	buff := []byte("Oct 11 22:14:15 mymachine ")
-	now := time.Now()
-	hdr := header{
-		timestamp: time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
-		hostname:  "mymachine",
+		s.Require().Equal(err, tc.expectedErr, tc.description)
+		s.Require().Equal(obtained, tc.expectedHdr, tc.description)
+		s.Require().Equal(p.cursor, tc.expectedCursorPos, tc.description)
 	}
-
-	s.assertRfc3164Header(c, hdr, buff, 25, nil)
 }
 
-func (s *Rfc3164TestSuite) TestParseHeader_InvalidTimestamp(c *C) {
-	buff := []byte("Oct 34 32:72:82 mymachine ")
-	hdr := header{}
-
-	s.assertRfc3164Header(c, hdr, buff, lastTriedTimestampLen+1, syslogparser.ErrTimestampUnknownFormat)
-}
-
-func (s *Rfc3164TestSuite) TestParsemessage_Valid(c *C) {
+func (s *RFC3164TestSuite) TestParsemessage_Valid() {
 	content := "foo bar baz blah quux"
+
 	buff := []byte("sometag[123]: " + content)
+
 	hdr := rfc3164message{
 		tag:     "sometag",
 		content: content,
 	}
 
-	s.assertRfc3164message(c, hdr, buff, len(buff), syslogparser.ErrEOL)
+	p := NewParser(buff)
+	obtained, err := p.parsemessage()
+
+	s.Require().Equal(err, syslogparser.ErrEOL)
+	s.Require().Equal(obtained, hdr)
+	s.Require().Equal(p.cursor, len(buff))
 }
 
-func (s *Rfc3164TestSuite) TestParseTimestamp_Invalid(c *C) {
-	buff := []byte("Oct 34 32:72:82")
-	ts := new(time.Time)
+func (s *RFC3164TestSuite) TestParseTimestamp() {
+	testCases := []struct {
+		description       string
+		input             []byte
+		expectedTS        time.Time
+		expectedCursorPos int
+		expectedErr       error
+	}{
+		{
+			description:       "invalid",
+			input:             []byte("Oct 34 32:72:82"),
+			expectedCursorPos: lastTriedTimestampLen,
+			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
+		},
+		{
+			description: "trailing space",
+			input:       []byte("Oct 11 22:14:15 "),
+			expectedTS: time.Date(
+				time.Now().Year(),
+				time.October,
+				11, 22, 14, 15, 0,
+				time.UTC,
+			),
+			expectedCursorPos: 16,
+			expectedErr:       nil,
+		},
+		{
+			description: "one digit for month",
+			input:       []byte("Oct  1 22:14:15"),
+			expectedTS: time.Date(
+				time.Now().Year(),
+				time.October,
+				1, 22, 14, 15, 0,
+				time.UTC,
+			),
+			expectedCursorPos: 15,
+			expectedErr:       nil,
+		},
+		{
+			description: "valid timestamp",
+			input:       []byte("Oct 11 22:14:15"),
+			expectedTS: time.Date(
+				time.Now().Year(),
+				time.October,
+				11, 22, 14, 15, 0,
+				time.UTC,
+			),
+			expectedCursorPos: 15,
+			expectedErr:       nil,
+		},
+	}
 
-	s.assertTimestamp(c, *ts, buff, lastTriedTimestampLen, syslogparser.ErrTimestampUnknownFormat)
+	for _, tc := range testCases {
+		p := NewParser(tc.input)
+		obtained, err := p.parseTimestamp()
+
+		s.Require().Equal(
+			obtained, tc.expectedTS, tc.description,
+		)
+		s.Require().Equal(
+			p.cursor, tc.expectedCursorPos, tc.description,
+		)
+		s.Require().Equal(
+			err, tc.expectedErr, tc.description,
+		)
+	}
 }
 
-func (s *Rfc3164TestSuite) TestParseTimestamp_TrailingSpace(c *C) {
-	// XXX : no year specified. Assumed current year
-	// XXX : no timezone specified. Assume UTC
-	buff := []byte("Oct 11 22:14:15 ")
+func (s *RFC3164TestSuite) TestParseTag() {
+	testCases := []struct {
+		description       string
+		input             []byte
+		expectedTag       string
+		expectedCursorPos int
+		expectedErr       error
+	}{
+		{
+			description:       "with pid",
+			input:             []byte("apache2[10]:"),
+			expectedTag:       "apache2",
+			expectedCursorPos: 12,
+			expectedErr:       nil,
+		},
+		{
+			description:       "without pid",
+			input:             []byte("apache2:"),
+			expectedTag:       "apache2",
+			expectedCursorPos: 8,
+			expectedErr:       nil,
+		},
+		{
+			description:       "trailing space",
+			input:             []byte("apache2: "),
+			expectedTag:       "apache2",
+			expectedCursorPos: 9,
+			expectedErr:       nil,
+		},
+	}
 
-	now := time.Now()
-	ts := time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC)
+	for _, tc := range testCases {
+		p := NewParser(tc.input)
+		obtained, err := p.parseTag()
 
-	s.assertTimestamp(c, ts, buff, len(buff), nil)
+		s.Require().Equal(
+			obtained, tc.expectedTag, tc.description,
+		)
+
+		s.Require().Equal(
+			p.cursor, tc.expectedCursorPos, tc.description,
+		)
+
+		s.Require().Equal(
+			err, tc.expectedErr, tc.description,
+		)
+	}
 }
 
-func (s *Rfc3164TestSuite) TestParseTimestamp_OneDigitForMonths(c *C) {
-	// XXX : no year specified. Assumed current year
-	// XXX : no timezone specified. Assume UTC
-	buff := []byte("Oct  1 22:14:15")
-
-	now := time.Now()
-	ts := time.Date(now.Year(), time.October, 1, 22, 14, 15, 0, time.UTC)
-
-	s.assertTimestamp(c, ts, buff, len(buff), nil)
-}
-
-func (s *Rfc3164TestSuite) TestParseTimestamp_Valid(c *C) {
-	// XXX : no year specified. Assumed current year
-	// XXX : no timezone specified. Assume UTC
-	buff := []byte("Oct 11 22:14:15")
-
-	now := time.Now()
-	ts := time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC)
-
-	s.assertTimestamp(c, ts, buff, len(buff), nil)
-}
-
-func (s *Rfc3164TestSuite) TestParseTag_Pid(c *C) {
-	buff := []byte("apache2[10]:")
-	tag := "apache2"
-
-	s.assertTag(c, tag, buff, len(buff), nil)
-}
-
-func (s *Rfc3164TestSuite) TestParseTag_NoPid(c *C) {
-	buff := []byte("apache2:")
-	tag := "apache2"
-
-	s.assertTag(c, tag, buff, len(buff), nil)
-}
-
-func (s *Rfc3164TestSuite) TestParseTag_TrailingSpace(c *C) {
-	buff := []byte("apache2: ")
-	tag := "apache2"
-
-	s.assertTag(c, tag, buff, len(buff), nil)
-}
-
-func (s *Rfc3164TestSuite) TestParseContent_Valid(c *C) {
+func (s *RFC3164TestSuite) TestParseContent_Valid() {
 	buff := []byte(" foo bar baz quux ")
 	content := string(bytes.Trim(buff, " "))
 
 	p := NewParser(buff)
 	obtained, err := p.parseContent()
-	c.Assert(err, Equals, syslogparser.ErrEOL)
-	c.Assert(obtained, Equals, content)
-	c.Assert(p.cursor, Equals, len(content))
+
+	s.Require().Equal(err, syslogparser.ErrEOL)
+	s.Require().Equal(obtained, content)
+	s.Require().Equal(p.cursor, len(content))
 }
 
-func (s *Rfc3164TestSuite) BenchmarkParseTimestamp(c *C) {
+func BenchmarkParseTimestamp(b *testing.B) {
 	buff := []byte("Oct 11 22:14:15")
 
 	p := NewParser(buff)
 
-	for i := 0; i < c.N; i++ {
+	for i := 0; i < b.N; i++ {
 		_, err := p.parseTimestamp()
 		if err != nil {
 			panic(err)
@@ -228,12 +328,12 @@ func (s *Rfc3164TestSuite) BenchmarkParseTimestamp(c *C) {
 	}
 }
 
-func (s *Rfc3164TestSuite) BenchmarkParseHostname(c *C) {
+func BenchmarkParseHostname(b *testing.B) {
 	buff := []byte("gimli.local")
 
 	p := NewParser(buff)
 
-	for i := 0; i < c.N; i++ {
+	for i := 0; i < b.N; i++ {
 		_, err := p.parseHostname()
 		if err != nil {
 			panic(err)
@@ -243,12 +343,12 @@ func (s *Rfc3164TestSuite) BenchmarkParseHostname(c *C) {
 	}
 }
 
-func (s *Rfc3164TestSuite) BenchmarkParseTag(c *C) {
+func BenchmarkParseTag(b *testing.B) {
 	buff := []byte("apache2[10]:")
 
 	p := NewParser(buff)
 
-	for i := 0; i < c.N; i++ {
+	for i := 0; i < b.N; i++ {
 		_, err := p.parseTag()
 		if err != nil {
 			panic(err)
@@ -258,12 +358,12 @@ func (s *Rfc3164TestSuite) BenchmarkParseTag(c *C) {
 	}
 }
 
-func (s *Rfc3164TestSuite) BenchmarkParseHeader(c *C) {
+func BenchmarkParseHeader(b *testing.B) {
 	buff := []byte("Oct 11 22:14:15 mymachine ")
 
 	p := NewParser(buff)
 
-	for i := 0; i < c.N; i++ {
+	for i := 0; i < b.N; i++ {
 		_, err := p.parseHeader()
 		if err != nil {
 			panic(err)
@@ -273,12 +373,12 @@ func (s *Rfc3164TestSuite) BenchmarkParseHeader(c *C) {
 	}
 }
 
-func (s *Rfc3164TestSuite) BenchmarkParsemessage(c *C) {
+func BenchmarkParsemessage(b *testing.B) {
 	buff := []byte("sometag[123]: foo bar baz blah quux")
 
 	p := NewParser(buff)
 
-	for i := 0; i < c.N; i++ {
+	for i := 0; i < b.N; i++ {
 		_, err := p.parsemessage()
 		if err != syslogparser.ErrEOL {
 			panic(err)
@@ -288,12 +388,12 @@ func (s *Rfc3164TestSuite) BenchmarkParsemessage(c *C) {
 	}
 }
 
-func (s *Rfc3164TestSuite) BenchmarkParseFull(c *C) {
+func BenchmarkParseFull(b *testing.B) {
 	msg := "<34>Oct 11 22:14:15 mymachine su: 'su root' failed for lonvick on /dev/pts/8"
 
 	p := NewParser([]byte(msg))
 
-	for i := 0; i < c.N; i++ {
+	for i := 0; i < b.N; i++ {
 		_, err := p.parsemessage()
 		if err != syslogparser.ErrEOL {
 			panic(err)
@@ -304,34 +404,8 @@ func (s *Rfc3164TestSuite) BenchmarkParseFull(c *C) {
 
 }
 
-func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC int, e error) {
-	p := NewParser(b)
-	obtained, err := p.parseTimestamp()
-	c.Assert(obtained, Equals, ts)
-	c.Assert(p.cursor, Equals, expC)
-	c.Assert(err, Equals, e)
-}
-
-func (s *Rfc3164TestSuite) assertTag(c *C, t string, b []byte, expC int, e error) {
-	p := NewParser(b)
-	obtained, err := p.parseTag()
-	c.Assert(obtained, Equals, t)
-	c.Assert(p.cursor, Equals, expC)
-	c.Assert(err, Equals, e)
-}
-
-func (s *Rfc3164TestSuite) assertRfc3164Header(c *C, hdr header, b []byte, expC int, e error) {
-	p := NewParser(b)
-	obtained, err := p.parseHeader()
-	c.Assert(err, Equals, e)
-	c.Assert(obtained, Equals, hdr)
-	c.Assert(p.cursor, Equals, expC)
-}
-
-func (s *Rfc3164TestSuite) assertRfc3164message(c *C, msg rfc3164message, b []byte, expC int, e error) {
-	p := NewParser(b)
-	obtained, err := p.parsemessage()
-	c.Assert(err, Equals, e)
-	c.Assert(obtained, Equals, msg)
-	c.Assert(p.cursor, Equals, expC)
+func TestRFC3164TestSuite(t *testing.T) {
+	suite.Run(
+		t, new(RFC3164TestSuite),
+	)
 }

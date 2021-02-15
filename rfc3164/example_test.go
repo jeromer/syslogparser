@@ -2,6 +2,7 @@ package rfc3164_test
 
 import (
 	"fmt"
+
 	"github.com/jeromer/syslogparser/rfc3164"
 )
 

@@ -139,6 +139,7 @@ func IsDigit(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
+// TODO: this should return a *Priority
 func newPriority(p int) Priority {
 	// The Priority value is calculated by first multiplying the Facility
 	// number by 8 and then adding the numerical value of the Severity.
