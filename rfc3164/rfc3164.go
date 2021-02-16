@@ -2,8 +2,9 @@ package rfc3164
 
 import (
 	"bytes"
-	"github.com/jeromer/syslogparser"
 	"time"
+
+	"github.com/jeromer/syslogparser"
 )
 
 type Parser struct {
@@ -56,9 +57,9 @@ func (p *Parser) Parse() error {
 		p.priority = pri
 	} else {
 		p.priority = syslogparser.Priority{
-			0,
-			syslogparser.Facility{0},
-			syslogparser.Severity{0},
+			P: 0,
+			F: syslogparser.Facility{Value: 0},
+			S: syslogparser.Severity{Value: 0},
 		}
 	}
 
@@ -226,7 +227,7 @@ func (p *Parser) parseTag() (string, error) {
 		if endOfTag {
 			if !found {
 				tag = p.buff[from:p.cursor]
-				found = true
+				// found = true
 			}
 
 			p.cursor++

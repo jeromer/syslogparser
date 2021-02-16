@@ -81,7 +81,7 @@ You should see
 Detecting message format
 ------------------------
 
-You can use the `WhichRFC()` function. Like this:
+You can use the `DetectRFC()` function. Like this:
 
 	b := []byte(`<165>1 2003-10-11T22:14:15.003Z ...`)
 	rfc, err := syslogparser.DetectRFC(b)
@@ -101,24 +101,45 @@ You can use the `WhichRFC()` function. Like this:
 Running tests
 -------------
 
-Run `make tests`
+Run `make test`
 
 Running benchmarks
 ------------------
 
-Run `make benchmarks`
+Run `make benchmark`
 
-    CommonTestSuite.BenchmarkParsePriority   20000000  85.9 ns/op
-    CommonTestSuite.BenchmarkParseVersion    500000000 4.59 ns/op
-    Rfc3164TestSuite.BenchmarkParseFull      10000000  187 ns/op
-    Rfc3164TestSuite.BenchmarkParseHeader    5000000   686 ns/op
-    Rfc3164TestSuite.BenchmarkParseHostname  50000000  43.4 ns/op
-    Rfc3164TestSuite.BenchmarkParseTag       50000000  63.5 ns/op
-    Rfc3164TestSuite.BenchmarkParseTimestamp 5000000   616 ns/op
-    Rfc3164TestSuite.BenchmarkParsemessage   10000000  187 ns/op
-    Rfc5424TestSuite.BenchmarkParseFull      1000000   1345 ns/op
-    Rfc5424TestSuite.BenchmarkParseHeader    1000000   1353 ns/op
-    Rfc5424TestSuite.BenchmarkParseTimestamp 1000000   2045 ns/op
+    go test -bench=. -benchmem
+    goos: linux
+    goarch: amd64
+    pkg: github.com/jeromer/syslogparser
+    BenchmarkParsePriority-8   	41772079	        31.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkParseVersion-8    	270007530	         4.45 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkDetectRFC-8       	78742269	        16.2 ns/op	       0 B/op	       0 allocs/op
+    PASS
+    ok  	github.com/jeromer/syslogparser	5.257s
+
+    cd rfc3164 && go test -bench=. -benchmem
+    goos: linux
+    goarch: amd64
+    pkg: github.com/jeromer/syslogparser/rfc3164
+    BenchmarkParseTimestamp-8   	 2693362	       467 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkParseHostname-8    	34919636	        32.8 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkParseTag-8         	20970715	        56.0 ns/op	       8 B/op	       1 allocs/op
+    BenchmarkParseHeader-8      	 2549106	       478 ns/op	      32 B/op	       2 allocs/op
+    BenchmarkParsemessage-8     	 8280796	       143 ns/op	      72 B/op	       3 allocs/op
+    BenchmarkParseFull-8        	 8070195	       139 ns/op	     120 B/op	       3 allocs/op
+    PASS
+    ok  	github.com/jeromer/syslogparser/rfc3164	8.428s
+
+    cd rfc5424 && go test -bench=. -benchmem
+    goos: linux
+    goarch: amd64
+    pkg: github.com/jeromer/syslogparser/rfc5424
+    BenchmarkParseTimestamp-8   	  846019	      1385 ns/op	     352 B/op	      18 allocs/op
+    BenchmarkParseHeader-8      	 1424103	       840 ns/op	     106 B/op	      12 allocs/op
+    BenchmarkParseFull-8        	 1444834	       825 ns/op	     112 B/op	      12 allocs/op
+    PASS
+    ok  	github.com/jeromer/syslogparser/rfc5424	6.195s
 
 [RFC 5424]: https://tools.ietf.org/html/rfc5424
 [RFC 3164]: https://tools.ietf.org/html/rfc3164

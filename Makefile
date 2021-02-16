@@ -1,19 +1,25 @@
-SUBPACKAGES=. rfc3164 rfc5424
-help:
-	@echo "Available targets:"
-	@echo "- tests: run tests"
-	@echo "- installdependencies: installs dependencies declared in dependencies.txt"
-	@echo "- clean: cleans directory"
-	@echo "- benchmarks: run benchmarks"
+GO ?=					$(shell which go)
 
-installdependencies:
-	@cat dependencies.txt | xargs go get
+GO_PKGS ?= 				$(shell $(GO) list ./...)
 
-tests: installdependencies
-	@for pkg in $(SUBPACKAGES); do cd $$pkg && go test -i && go test ; cd -;done
+GO_TEST_PKGS ?= 		$(shell test -f go.mod && $(GO) list -f \
+							'{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' \
+							$(GO_PKGS))
 
-clean:
-	find . -type 'f' -name '*.test' -print | xargs rm -f
+GO_TEST_TIMEOUT ?= 		15s
 
-benchmarks:
-	@for pkg in $(SUBPACKAGES); do cd $$pkg && go test -gocheck.b ; cd -;done
+GO_BENCH=go test -bench=. -benchmem
+
+all: test
+
+test:
+	$(GO) test                      \
+		-race                       \
+		-timeout $(GO_TEST_TIMEOUT) \
+		$(GO_TEST_PKGS)
+
+#XXX: ugly
+benchmark:
+	$(GO_BENCH)
+	cd rfc3164 && $(GO_BENCH)
+	cd rfc5424 && $(GO_BENCH)
