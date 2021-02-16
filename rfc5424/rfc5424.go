@@ -424,7 +424,7 @@ func parseSecFrac(buff []byte, cursor *int, l int) (float64, error) {
 
 	max := *cursor + maxDigitLen
 	from := *cursor
-	to := from
+	to := 0
 
 	for to = from; to < max; to++ {
 		if to >= l {
@@ -537,7 +537,7 @@ func parseStructuredData(buff []byte, cursor *int, l int) (string, error) {
 	}
 
 	from := *cursor
-	to := from
+	to := 0
 
 	for to = from; to < l; to++ {
 		if found {
