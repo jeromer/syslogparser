@@ -127,14 +127,14 @@ func (s *RFC3164TestSuite) TestParseWithout_Hostname() {
 func (s *RFC3164TestSuite) TestParseHeader() {
 	testCases := []struct {
 		description       string
-		input             []byte
+		input             string
 		expectedHdr       header
 		expectedCursorPos int
 		expectedErr       error
 	}{
 		{
 			description: "valid headers",
-			input:       []byte("Oct 11 22:14:15 mymachine "),
+			input:       "Oct 11 22:14:15 mymachine ",
 			expectedHdr: header{
 				hostname: "mymachine",
 				timestamp: time.Date(
@@ -149,7 +149,7 @@ func (s *RFC3164TestSuite) TestParseHeader() {
 		},
 		{
 			description:       "invalid timestamp",
-			input:             []byte("Oct 34 32:72:82 mymachine "),
+			input:             "Oct 34 32:72:82 mymachine ",
 			expectedHdr:       header{},
 			expectedCursorPos: lastTriedTimestampLen + 1,
 			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
@@ -157,7 +157,7 @@ func (s *RFC3164TestSuite) TestParseHeader() {
 	}
 
 	for _, tc := range testCases {
-		p := NewParser(tc.input)
+		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseHeader()
 
 		s.Require().Equal(err, tc.expectedErr, tc.description)
@@ -187,20 +187,20 @@ func (s *RFC3164TestSuite) TestParsemessage_Valid() {
 func (s *RFC3164TestSuite) TestParseTimestamp() {
 	testCases := []struct {
 		description       string
-		input             []byte
+		input             string
 		expectedTS        time.Time
 		expectedCursorPos int
 		expectedErr       error
 	}{
 		{
 			description:       "invalid",
-			input:             []byte("Oct 34 32:72:82"),
+			input:             "Oct 34 32:72:82",
 			expectedCursorPos: lastTriedTimestampLen,
 			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
 		},
 		{
 			description: "trailing space",
-			input:       []byte("Oct 11 22:14:15 "),
+			input:       "Oct 11 22:14:15 ",
 			expectedTS: time.Date(
 				time.Now().Year(),
 				time.October,
@@ -212,7 +212,7 @@ func (s *RFC3164TestSuite) TestParseTimestamp() {
 		},
 		{
 			description: "one digit for month",
-			input:       []byte("Oct  1 22:14:15"),
+			input:       "Oct  1 22:14:15",
 			expectedTS: time.Date(
 				time.Now().Year(),
 				time.October,
@@ -224,7 +224,7 @@ func (s *RFC3164TestSuite) TestParseTimestamp() {
 		},
 		{
 			description: "valid timestamp",
-			input:       []byte("Oct 11 22:14:15"),
+			input:       "Oct 11 22:14:15",
 			expectedTS: time.Date(
 				time.Now().Year(),
 				time.October,
@@ -237,7 +237,7 @@ func (s *RFC3164TestSuite) TestParseTimestamp() {
 	}
 
 	for _, tc := range testCases {
-		p := NewParser(tc.input)
+		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseTimestamp()
 
 		s.Require().Equal(
@@ -255,28 +255,28 @@ func (s *RFC3164TestSuite) TestParseTimestamp() {
 func (s *RFC3164TestSuite) TestParseTag() {
 	testCases := []struct {
 		description       string
-		input             []byte
+		input             string
 		expectedTag       string
 		expectedCursorPos int
 		expectedErr       error
 	}{
 		{
 			description:       "with pid",
-			input:             []byte("apache2[10]:"),
+			input:             "apache2[10]:",
 			expectedTag:       "apache2",
 			expectedCursorPos: 12,
 			expectedErr:       nil,
 		},
 		{
 			description:       "without pid",
-			input:             []byte("apache2:"),
+			input:             "apache2:",
 			expectedTag:       "apache2",
 			expectedCursorPos: 8,
 			expectedErr:       nil,
 		},
 		{
 			description:       "trailing space",
-			input:             []byte("apache2: "),
+			input:             "apache2: ",
 			expectedTag:       "apache2",
 			expectedCursorPos: 9,
 			expectedErr:       nil,
@@ -284,7 +284,7 @@ func (s *RFC3164TestSuite) TestParseTag() {
 	}
 
 	for _, tc := range testCases {
-		p := NewParser(tc.input)
+		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseTag()
 
 		s.Require().Equal(
