@@ -8,9 +8,6 @@ import (
 )
 
 const (
-	PRI_PART_START = '<'
-	PRI_PART_END   = '>'
-
 	NO_VERSION = -1
 )
 
@@ -72,7 +69,7 @@ func ParsePriority(buff []byte, cursor *int, l int) (Priority, error) {
 		return pri, ErrPriorityEmpty
 	}
 
-	if buff[*cursor] != PRI_PART_START {
+	if buff[*cursor] != '<' {
 		return pri, ErrPriorityNoStart
 	}
 
@@ -86,7 +83,7 @@ func ParsePriority(buff []byte, cursor *int, l int) (Priority, error) {
 
 		c := buff[i]
 
-		if c == PRI_PART_END {
+		if c == '>' {
 			if i == 1 {
 				return pri, ErrPriorityTooShort
 			}
