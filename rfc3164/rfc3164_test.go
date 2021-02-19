@@ -2,16 +2,14 @@ package rfc3164
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/jeromer/syslogparser"
-	"github.com/stretchr/testify/suite"
+	"github.com/jeromer/syslogparser/parsercommon"
+	"github.com/stretchr/testify/require"
 )
-
-type RFC3164TestSuite struct {
-	suite.Suite
-}
 
 var (
 	// XXX : corresponds to the length of the last tried timestamp format
@@ -19,13 +17,15 @@ var (
 	lastTriedTimestampLen = 15
 )
 
-func (s *RFC3164TestSuite) TestParser_Valid() {
+func TestParser_Valid(t *testing.T) {
 	buff := []byte(
 		"<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8",
 	)
 
 	p := NewParser(buff)
-	s.Require().Equal(
+
+	require.Equal(
+		t,
 		p,
 		&Parser{
 			buff:          buff,
@@ -37,8 +37,13 @@ func (s *RFC3164TestSuite) TestParser_Valid() {
 	)
 
 	err := p.Parse()
-	s.Require().Nil(err)
-	s.Require().Equal(
+
+	require.Nil(
+		t, err,
+	)
+
+	require.Equal(
+		t,
 		p.Dump(),
 		syslogparser.LogParts{
 			"timestamp": time.Date(
@@ -57,7 +62,7 @@ func (s *RFC3164TestSuite) TestParser_Valid() {
 	)
 }
 
-func (s *RFC3164TestSuite) TestParser_WithoutPriority() {
+func TestParser_WithoutPriority(t *testing.T) {
 	buff := []byte(
 		"Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8",
 	)
@@ -65,7 +70,8 @@ func (s *RFC3164TestSuite) TestParser_WithoutPriority() {
 	p := NewParser(buff)
 	p.ParsePriority = false
 
-	s.Require().Equal(
+	require.Equal(
+		t,
 		p,
 		&Parser{
 			buff:          buff,
@@ -77,8 +83,13 @@ func (s *RFC3164TestSuite) TestParser_WithoutPriority() {
 	)
 
 	err := p.Parse()
-	s.Require().Nil(err)
-	s.Require().Equal(
+
+	require.Nil(
+		t, err,
+	)
+
+	require.Equal(
+		t,
 		p.Dump(),
 		syslogparser.LogParts{
 			"timestamp": time.Date(
@@ -94,7 +105,7 @@ func (s *RFC3164TestSuite) TestParser_WithoutPriority() {
 	)
 }
 
-func (s *RFC3164TestSuite) TestParseWithout_Hostname() {
+func TestParseWithout_Hostname(t *testing.T) {
 	buff := []byte(
 		"<30>Jun 23 13:17:42 chronyd[1119]: Selected source 192.168.65.1",
 	)
@@ -103,9 +114,10 @@ func (s *RFC3164TestSuite) TestParseWithout_Hostname() {
 	p.Hostname("testhost")
 
 	err := p.Parse()
-	s.Require().Nil(err)
+	require.Nil(t, err)
 
-	s.Require().Equal(
+	require.Equal(
+		t,
 		p.Dump(),
 		syslogparser.LogParts{
 			"timestamp": time.Date(
@@ -124,18 +136,18 @@ func (s *RFC3164TestSuite) TestParseWithout_Hostname() {
 	)
 }
 
-func (s *RFC3164TestSuite) TestParseHeader() {
+func TestParseHeader(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
-		expectedHdr       header
+		expectedHdr       *header
 		expectedCursorPos int
 		expectedErr       error
 	}{
 		{
 			description: "valid headers",
 			input:       "Oct 11 22:14:15 mymachine ",
-			expectedHdr: header{
+			expectedHdr: &header{
 				hostname: "mymachine",
 				timestamp: time.Date(
 					time.Now().Year(),
@@ -150,9 +162,9 @@ func (s *RFC3164TestSuite) TestParseHeader() {
 		{
 			description:       "invalid timestamp",
 			input:             "Oct 34 32:72:82 mymachine ",
-			expectedHdr:       header{},
+			expectedHdr:       nil,
 			expectedCursorPos: lastTriedTimestampLen + 1,
-			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
+			expectedErr:       parsercommon.ErrTimestampUnknownFormat,
 		},
 	}
 
@@ -160,18 +172,26 @@ func (s *RFC3164TestSuite) TestParseHeader() {
 		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseHeader()
 
-		s.Require().Equal(err, tc.expectedErr, tc.description)
-		s.Require().Equal(obtained, tc.expectedHdr, tc.description)
-		s.Require().Equal(p.cursor, tc.expectedCursorPos, tc.description)
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
+		)
+
+		require.Equal(
+			t, obtained, tc.expectedHdr, tc.description,
+		)
+
+		require.Equal(
+			t, p.cursor, tc.expectedCursorPos, tc.description,
+		)
 	}
 }
 
-func (s *RFC3164TestSuite) TestParsemessage_Valid() {
+func TestParsemessage_Valid(t *testing.T) {
 	content := "foo bar baz blah quux"
 
 	buff := []byte("sometag[123]: " + content)
 
-	hdr := rfc3164message{
+	msg := &message{
 		tag:     "sometag",
 		content: content,
 	}
@@ -179,12 +199,20 @@ func (s *RFC3164TestSuite) TestParsemessage_Valid() {
 	p := NewParser(buff)
 	obtained, err := p.parsemessage()
 
-	s.Require().Equal(err, syslogparser.ErrEOL)
-	s.Require().Equal(obtained, hdr)
-	s.Require().Equal(p.cursor, len(buff))
+	require.Equal(
+		t, err, parsercommon.ErrEOL,
+	)
+
+	require.Equal(
+		t, obtained, msg,
+	)
+
+	require.Equal(
+		t, p.cursor, len(buff),
+	)
 }
 
-func (s *RFC3164TestSuite) TestParseTimestamp() {
+func TestParseTimestamp(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -196,7 +224,7 @@ func (s *RFC3164TestSuite) TestParseTimestamp() {
 			description:       "invalid",
 			input:             "Oct 34 32:72:82",
 			expectedCursorPos: lastTriedTimestampLen,
-			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
+			expectedErr:       parsercommon.ErrTimestampUnknownFormat,
 		},
 		{
 			description: "trailing space",
@@ -240,19 +268,21 @@ func (s *RFC3164TestSuite) TestParseTimestamp() {
 		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseTimestamp()
 
-		s.Require().Equal(
-			obtained, tc.expectedTS, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedTS, tc.description,
 		)
-		s.Require().Equal(
-			p.cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, p.cursor, tc.expectedCursorPos, tc.description,
 		)
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
 	}
 }
 
-func (s *RFC3164TestSuite) TestParseTag() {
+func TestParseTag(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -287,30 +317,65 @@ func (s *RFC3164TestSuite) TestParseTag() {
 		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseTag()
 
-		s.Require().Equal(
-			obtained, tc.expectedTag, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedTag, tc.description,
 		)
 
-		s.Require().Equal(
-			p.cursor, tc.expectedCursorPos, tc.description,
+		require.Equal(
+			t, p.cursor, tc.expectedCursorPos, tc.description,
 		)
 
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
 	}
 }
 
-func (s *RFC3164TestSuite) TestParseContent_Valid() {
+func TestParseContent_Valid(t *testing.T) {
 	buff := []byte(" foo bar baz quux ")
 	content := string(bytes.Trim(buff, " "))
 
 	p := NewParser(buff)
 	obtained, err := p.parseContent()
 
-	s.Require().Equal(err, syslogparser.ErrEOL)
-	s.Require().Equal(obtained, content)
-	s.Require().Equal(p.cursor, len(content))
+	require.Equal(
+		t, err, parsercommon.ErrEOL,
+	)
+
+	require.Equal(
+		t, obtained, content,
+	)
+
+	require.Equal(
+		t, p.cursor, len(content),
+	)
+}
+
+func TestParseMessageSizeChecks(t *testing.T) {
+	start := "<34>Oct 11 22:14:15 mymachine su: "
+	msg := start + strings.Repeat("a", MAX_PACKET_LEN)
+
+	p := NewParser([]byte(msg))
+	err := p.Parse()
+	fields := p.Dump()
+
+	require.Nil(
+		t, err,
+	)
+
+	require.Len(
+		t, fields["content"], MAX_PACKET_LEN-len(start),
+	)
+
+	// ---
+
+	msg = start + "hello"
+	p = NewParser([]byte(msg))
+	err = p.Parse()
+	fields = p.Dump()
+
+	require.Nil(t, err)
+	require.Equal(t, fields["content"], "hello")
 }
 
 func BenchmarkParseTimestamp(b *testing.B) {
@@ -380,7 +445,7 @@ func BenchmarkParsemessage(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		_, err := p.parsemessage()
-		if err != syslogparser.ErrEOL {
+		if err != parsercommon.ErrEOL {
 			panic(err)
 		}
 
@@ -391,21 +456,14 @@ func BenchmarkParsemessage(b *testing.B) {
 func BenchmarkParseFull(b *testing.B) {
 	msg := "<34>Oct 11 22:14:15 mymachine su: 'su root' failed for lonvick on /dev/pts/8"
 
-	p := NewParser([]byte(msg))
-
 	for i := 0; i < b.N; i++ {
-		_, err := p.parsemessage()
-		if err != syslogparser.ErrEOL {
+		p := NewParser(
+			[]byte(msg),
+		)
+
+		err := p.Parse()
+		if err != nil {
 			panic(err)
 		}
-
-		p.cursor = 0
 	}
-
-}
-
-func TestRFC3164TestSuite(t *testing.T) {
-	suite.Run(
-		t, new(RFC3164TestSuite),
-	)
 }

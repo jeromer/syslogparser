@@ -16,5 +16,7 @@ func ExampleNewParser() {
 		panic(err)
 	}
 
-	fmt.Println(p.Dump())
+	for k, v := range p.Dump() {
+		fmt.Println(k, ":", v)
+	}
 }

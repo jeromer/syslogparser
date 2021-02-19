@@ -7,16 +7,13 @@ import (
 	"time"
 
 	"github.com/jeromer/syslogparser"
-	"github.com/stretchr/testify/suite"
+	"github.com/jeromer/syslogparser/parsercommon"
+	"github.com/stretchr/testify/require"
 )
 
-type RFC5424TestSuite struct {
-	suite.Suite
-}
-
-func (s *RFC5424TestSuite) TestParser() {
+func TestParser(t *testing.T) {
 	tmpTZ, err := time.Parse("-07:00", "-07:00")
-	s.Require().Nil(err)
+	require.Nil(t, err)
 
 	testCases := []struct {
 		description   string
@@ -113,7 +110,8 @@ func (s *RFC5424TestSuite) TestParser() {
 		buff := []byte(tc.input)
 
 		p := NewParser(buff)
-		s.Require().Equal(
+		require.Equal(
+			t,
 			p,
 			&Parser{
 				buff:   buff,
@@ -124,18 +122,18 @@ func (s *RFC5424TestSuite) TestParser() {
 		)
 
 		err := p.Parse()
-		s.Require().Nil(err)
+		require.Nil(t, err)
 
 		obtained := p.Dump()
 		for k, v := range obtained {
-			s.Require().Equal(
-				v, tc.expectedParts[k], tc.description,
+			require.Equal(
+				t, v, tc.expectedParts[k], tc.description,
 			)
 		}
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseHeader() {
+func TestParseHeader(t *testing.T) {
 	ts := time.Date(2003, time.October, 11, 22, 14, 15, 3*10e5, time.UTC)
 	tsString := "2003-10-11T22:14:15.003Z"
 	hostname := "mymachine.example.com"
@@ -144,20 +142,20 @@ func (s *RFC5424TestSuite) TestParseHeader() {
 	msgId := "ID47"
 	nilValue := string(NILVALUE)
 	headerFmt := "<165>1 %s %s %s %s %s "
-	pri := syslogparser.Priority{
+	pri := &parsercommon.Priority{
 		P: 165,
-		F: syslogparser.Facility{Value: 20},
-		S: syslogparser.Severity{Value: 5},
+		F: parsercommon.Facility{Value: 20},
+		S: parsercommon.Severity{Value: 5},
 	}
 	testCases := []struct {
 		description string
 		input       string
-		expectedHdr header
+		expectedHdr *header
 	}{
 		{
 			description: "HEADER complete",
 			input:       fmt.Sprintf(headerFmt, tsString, hostname, appName, procId, msgId),
-			expectedHdr: header{
+			expectedHdr: &header{
 				priority:  pri,
 				version:   1,
 				timestamp: ts,
@@ -170,10 +168,10 @@ func (s *RFC5424TestSuite) TestParseHeader() {
 		{
 			description: "TIMESTAMP as NILVALUE",
 			input:       fmt.Sprintf(headerFmt, nilValue, hostname, appName, procId, msgId),
-			expectedHdr: header{
+			expectedHdr: &header{
 				priority:  pri,
 				version:   1,
-				timestamp: *new(time.Time),
+				timestamp: time.Time{},
 				hostname:  hostname,
 				appName:   appName,
 				procId:    procId,
@@ -183,7 +181,7 @@ func (s *RFC5424TestSuite) TestParseHeader() {
 		{
 			description: "HOSTNAME as NILVALUE",
 			input:       fmt.Sprintf(headerFmt, tsString, nilValue, appName, procId, msgId),
-			expectedHdr: header{
+			expectedHdr: &header{
 				priority:  pri,
 				version:   1,
 				timestamp: ts,
@@ -196,7 +194,7 @@ func (s *RFC5424TestSuite) TestParseHeader() {
 		{
 			description: "APP-NAME as NILVALUE",
 			input:       fmt.Sprintf(headerFmt, tsString, hostname, nilValue, procId, msgId),
-			expectedHdr: header{
+			expectedHdr: &header{
 				priority:  pri,
 				version:   1,
 				timestamp: ts,
@@ -209,7 +207,7 @@ func (s *RFC5424TestSuite) TestParseHeader() {
 		{
 			description: "PROCID as NILVALUE",
 			input:       fmt.Sprintf(headerFmt, tsString, hostname, appName, nilValue, msgId),
-			expectedHdr: header{
+			expectedHdr: &header{
 				priority:  pri,
 				version:   1,
 				timestamp: ts,
@@ -222,7 +220,7 @@ func (s *RFC5424TestSuite) TestParseHeader() {
 		{
 			description: "MSGID as NILVALUE",
 			input:       fmt.Sprintf(headerFmt, tsString, hostname, appName, procId, nilValue),
-			expectedHdr: header{
+			expectedHdr: &header{
 				priority:  pri,
 				version:   1,
 				timestamp: ts,
@@ -238,74 +236,81 @@ func (s *RFC5424TestSuite) TestParseHeader() {
 		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseHeader()
 
-		s.Require().Nil(
-			err, tc.description,
+		require.Nil(
+			t, err, tc.description,
 		)
 
-		s.Require().Equal(
-			obtained, tc.expectedHdr, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedHdr, tc.description,
 		)
 
-		s.Require().Equal(
-			p.cursor, len(tc.input), tc.description,
+		require.Equal(
+			t, p.cursor, len(tc.input), tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseTimestamp() {
+func TestParseTimestamp(t *testing.T) {
 	tz := "-04:00"
 	tmpTZ, err := time.Parse("-07:00", tz)
-	s.Require().Nil(err)
-	s.Require().NotNil(tmpTZ)
+	require.Nil(t, err)
+	require.NotNil(t, tmpTZ)
 
+	dt1 := time.Date(
+		1985, time.April, 12,
+		23, 20, 50, 52*10e6,
+		time.UTC,
+	)
+
+	dt2 := time.Date(
+		1985, time.April, 12,
+		19, 20, 50, 52*10e6,
+		tmpTZ.Location(),
+	)
+
+	dt3 := time.Date(
+		2003, time.October, 11,
+		22, 14, 15, 3*10e5,
+		time.UTC,
+	)
+
+	dt4 := time.Date(
+		2003, time.August, 24,
+		5, 14, 15, 3*10e2,
+		tmpTZ.Location(),
+	)
 	testCases := []struct {
 		description       string
 		input             string
-		expectedTS        time.Time
+		expectedTS        *time.Time
 		expectedCursorPos int
 		expectedErr       error
 	}{
 		{
-			description: "UTC timestamp",
-			input:       "1985-04-12T23:20:50.52Z",
-			expectedTS: time.Date(
-				1985, time.April, 12,
-				23, 20, 50, 52*10e6,
-				time.UTC,
-			),
+			description:       "UTC timestamp",
+			input:             "1985-04-12T23:20:50.52Z",
+			expectedTS:        &dt1,
 			expectedCursorPos: 23,
 			expectedErr:       nil,
 		},
 		{
-			description: "numeric timezone",
-			input:       "1985-04-12T19:20:50.52" + tz,
-			expectedTS: time.Date(
-				1985, time.April, 12,
-				19, 20, 50, 52*10e6,
-				tmpTZ.Location(),
-			),
+			description:       "numeric timezone",
+			input:             "1985-04-12T19:20:50.52" + tz,
+			expectedTS:        &dt2,
 			expectedCursorPos: 28,
 			expectedErr:       nil,
 		},
 		{
-			description: "timestamp with ms",
-			input:       "2003-10-11T22:14:15.003Z",
-			expectedTS: time.Date(
-				2003, time.October, 11,
-				22, 14, 15, 3*10e5,
-				time.UTC,
-			),
+			description:       "timestamp with ms",
+			input:             "2003-10-11T22:14:15.003Z",
+			expectedTS:        &dt3,
 			expectedCursorPos: 24,
 			expectedErr:       nil,
 		},
 		{
-			description: "timestamp with us",
-			input:       "2003-08-24T05:14:15.000003" + tz,
-			expectedTS: time.Date(
-				2003, time.August, 24,
-				5, 14, 15, 3*10e2,
-				tmpTZ.Location(),
-			),
+			description:       "timestamp with us",
+			input:             "2003-08-24T05:14:15.000003" + tz,
+			expectedTS:        &dt4,
 			expectedCursorPos: 32,
 			expectedErr:       nil,
 		},
@@ -313,12 +318,14 @@ func (s *RFC5424TestSuite) TestParseTimestamp() {
 			description:       "timestamp with ns",
 			input:             "2003-08-24T05:14:15.000000003-07:00",
 			expectedCursorPos: 26,
-			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
+			expectedTS:        nil,
+			expectedErr:       parsercommon.ErrTimestampUnknownFormat,
 		},
 		{
 			description:       "nil timestamp",
 			input:             "-",
 			expectedCursorPos: 1,
+			expectedTS:        nil,
 			expectedErr:       nil,
 		},
 	}
@@ -327,24 +334,40 @@ func (s *RFC5424TestSuite) TestParseTimestamp() {
 		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseTimestamp()
 
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
+		)
+		require.Equal(
+			t,
+			p.cursor,
+			tc.expectedCursorPos,
+			tc.description,
 		)
 
+		if tc.expectedErr != nil {
+			require.Nil(
+				t, obtained, tc.description,
+			)
+
+			continue
+		}
+
+		if tc.description == "nil timestamp" {
+			continue
+		}
+
 		tfmt := time.RFC3339Nano
-		s.Require().Equal(
+		require.Equal(
+			t,
 			obtained.Format(tfmt),
 			tc.expectedTS.Format(tfmt),
 			tc.description,
 		)
 
-		s.Require().Equal(
-			p.cursor, tc.expectedCursorPos, tc.description,
-		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseYear() {
+func TestParseYear(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -364,7 +387,7 @@ func (s *RFC5424TestSuite) TestParseYear() {
 			input:             "123",
 			expectedYear:      0,
 			expectedCursorPos: 0,
-			expectedErr:       syslogparser.ErrEOL,
+			expectedErr:       parsercommon.ErrEOL,
 		},
 		{
 			description:       "valid",
@@ -383,19 +406,21 @@ func (s *RFC5424TestSuite) TestParseYear() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			obtained, tc.expectedYear, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedYear, tc.description,
 		)
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseMonth() {
+func TestParseMonth(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -429,7 +454,7 @@ func (s *RFC5424TestSuite) TestParseMonth() {
 			input:             "1",
 			expectedMonth:     0,
 			expectedCursorPos: 0,
-			expectedErr:       syslogparser.ErrEOL,
+			expectedErr:       parsercommon.ErrEOL,
 		},
 		{
 			description:       "valid",
@@ -448,19 +473,21 @@ func (s *RFC5424TestSuite) TestParseMonth() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			obtained, tc.expectedMonth, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedMonth, tc.description,
 		)
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseDay() {
+func TestParseDay(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -480,7 +507,7 @@ func (s *RFC5424TestSuite) TestParseDay() {
 			input:             "1",
 			expectedDay:       0,
 			expectedCursorPos: 0,
-			expectedErr:       syslogparser.ErrEOL,
+			expectedErr:       parsercommon.ErrEOL,
 		},
 		{
 			description:       "invalid range 1/2",
@@ -513,19 +540,21 @@ func (s *RFC5424TestSuite) TestParseDay() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			obtained, tc.expectedDay, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedDay, tc.description,
 		)
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseFullDate() {
+func TestParseFullDate(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -538,14 +567,14 @@ func (s *RFC5424TestSuite) TestParseFullDate() {
 			input:             "2013+10-28",
 			expectedDate:      fullDate{},
 			expectedCursorPos: 4,
-			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
+			expectedErr:       parsercommon.ErrTimestampUnknownFormat,
 		},
 		{
 			description:       "invalid separator 2/2",
 			input:             "2013-10+28",
 			expectedDate:      fullDate{},
 			expectedCursorPos: 7,
-			expectedErr:       syslogparser.ErrTimestampUnknownFormat,
+			expectedErr:       parsercommon.ErrTimestampUnknownFormat,
 		},
 		{
 			description:       "valid",
@@ -564,19 +593,21 @@ func (s *RFC5424TestSuite) TestParseFullDate() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			obtained, tc.expectedDate, tc.description,
+
+		require.Equal(
+			t, obtained, tc.expectedDate, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseHour() {
+func TestParseHour(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -596,7 +627,7 @@ func (s *RFC5424TestSuite) TestParseHour() {
 			input:             "1",
 			expectedHour:      0,
 			expectedCursorPos: 0,
-			expectedErr:       syslogparser.ErrEOL,
+			expectedErr:       parsercommon.ErrEOL,
 		},
 		{
 			description:       "invalid range 1/2",
@@ -629,19 +660,21 @@ func (s *RFC5424TestSuite) TestParseHour() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			obtained, tc.expectedHour, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedHour, tc.description,
 		)
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseMinute() {
+func TestParseMinute(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -661,7 +694,7 @@ func (s *RFC5424TestSuite) TestParseMinute() {
 			input:             "1",
 			expectedMinute:    0,
 			expectedCursorPos: 0,
-			expectedErr:       syslogparser.ErrEOL,
+			expectedErr:       parsercommon.ErrEOL,
 		},
 		{
 			description:       "invalid range 1/2",
@@ -694,19 +727,21 @@ func (s *RFC5424TestSuite) TestParseMinute() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			obtained, tc.expectedMinute, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedMinute, tc.description,
 		)
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseSecond() {
+func TestParseSecond(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -726,7 +761,7 @@ func (s *RFC5424TestSuite) TestParseSecond() {
 			input:             "1",
 			expectedSecond:    0,
 			expectedCursorPos: 0,
-			expectedErr:       syslogparser.ErrEOL,
+			expectedErr:       parsercommon.ErrEOL,
 		},
 		{
 			description:       "invalid range 1/2",
@@ -759,19 +794,21 @@ func (s *RFC5424TestSuite) TestParseSecond() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			obtained, tc.expectedSecond, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedSecond, tc.description,
 		)
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseSecFrac() {
+func TestParseSecFrac(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -831,46 +868,48 @@ func (s *RFC5424TestSuite) TestParseSecFrac() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			obtained, tc.expectedSecFrac, tc.description,
+		require.Equal(
+			t, obtained, tc.expectedSecFrac, tc.description,
 		)
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseNumericalTimeOffset() {
+func TestParseNumericalTimeOffset(t *testing.T) {
 	buff := []byte("+02:00")
 	cursor := 0
 	l := len(buff)
 	tmpTs, err := time.Parse("-07:00", string(buff))
-	s.Require().Nil(err)
+	require.Nil(t, err)
 
 	obtained, err := parseNumericalTimeOffset(buff, &cursor, l)
-	s.Require().Nil(err)
+	require.Nil(t, err)
 
 	expected := tmpTs.Location()
-	s.Require().Equal(obtained, expected)
+	require.Equal(t, obtained, expected)
 
-	s.Require().Equal(cursor, 6)
+	require.Equal(t, cursor, 6)
 }
 
-func (s *RFC5424TestSuite) TestParseTimeOffset() {
+func TestParseTimeOffset(t *testing.T) {
 	buff := []byte("Z")
 	cursor := 0
 	l := len(buff)
 
 	obtained, err := parseTimeOffset(buff, &cursor, l)
-	s.Require().Nil(err)
-	s.Require().Equal(obtained, time.UTC)
-	s.Require().Equal(cursor, 1)
+	require.Nil(t, err)
+	require.Equal(t, obtained, time.UTC)
+	require.Equal(t, cursor, 1)
 }
 
-func (s *RFC5424TestSuite) TestGetHourMin() {
+func TestGetHourMin(t *testing.T) {
 	buff := []byte("12:34")
 	cursor := 0
 	l := len(buff)
@@ -882,14 +921,14 @@ func (s *RFC5424TestSuite) TestGetHourMin() {
 		buff, &cursor, l,
 	)
 
-	s.Require().Nil(err)
-	s.Require().Equal(obtainedH, expectedH)
-	s.Require().Equal(obtainedM, expectedM)
+	require.Nil(t, err)
+	require.Equal(t, obtainedH, expectedH)
+	require.Equal(t, obtainedM, expectedM)
 
-	s.Require().Equal(cursor, l)
+	require.Equal(t, cursor, l)
 }
 
-func (s *RFC5424TestSuite) TestParsePartialTime() {
+func TestParsePartialTime(t *testing.T) {
 	buff := []byte("05:14:15.000003")
 	cursor := 0
 	l := len(buff)
@@ -898,33 +937,33 @@ func (s *RFC5424TestSuite) TestParsePartialTime() {
 		buff, &cursor, l,
 	)
 
-	expected := partialTime{
+	expected := &partialTime{
 		hour:    5,
 		minute:  14,
 		seconds: 15,
 		secFrac: 0.000003,
 	}
 
-	s.Require().Nil(err)
-	s.Require().Equal(obtained, expected)
-	s.Require().Equal(cursor, l)
+	require.Nil(t, err)
+	require.Equal(t, obtained, expected)
+	require.Equal(t, cursor, l)
 }
 
-func (s *RFC5424TestSuite) TestParseFullTime() {
+func TestParseFullTime(t *testing.T) {
 	tz := "-02:00"
 	buff := []byte("05:14:15.000003" + tz)
 	cursor := 0
 	l := len(buff)
 
 	tmpTs, err := time.Parse("-07:00", string(tz))
-	s.Require().Nil(err)
+	require.Nil(t, err)
 
 	obtained, err := parseFullTime(
 		buff, &cursor, l,
 	)
 
-	expected := fullTime{
-		pt: partialTime{
+	expected := &fullTime{
+		pt: &partialTime{
 			hour:    5,
 			minute:  14,
 			seconds: 15,
@@ -933,12 +972,12 @@ func (s *RFC5424TestSuite) TestParseFullTime() {
 		loc: tmpTs.Location(),
 	}
 
-	s.Require().Nil(err)
-	s.Require().Equal(obtained, expected)
-	s.Require().Equal(cursor, 21)
+	require.Nil(t, err)
+	require.Equal(t, obtained, expected)
+	require.Equal(t, cursor, 21)
 }
 
-func (s *RFC5424TestSuite) TestToNSec() {
+func TestToNSec(t *testing.T) {
 	testCases := map[float64]int{
 		0.52:     520000000,
 		0.003:    3000000,
@@ -947,12 +986,12 @@ func (s *RFC5424TestSuite) TestToNSec() {
 
 	for src, expected := range testCases {
 		obtained, err := toNSec(src)
-		s.Require().Nil(err)
-		s.Require().Equal(obtained, expected)
+		require.Nil(t, err)
+		require.Equal(t, obtained, expected)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseAppName() {
+func TestParseAppName(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -980,19 +1019,21 @@ func (s *RFC5424TestSuite) TestParseAppName() {
 		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseAppName()
 
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			obtained, tc.expectedAppName, tc.description,
+
+		require.Equal(
+			t, obtained, tc.expectedAppName, tc.description,
 		)
-		s.Require().Equal(
-			p.cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, p.cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseProcID() {
+func TestParseProcID(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -1020,19 +1061,21 @@ func (s *RFC5424TestSuite) TestParseProcID() {
 		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseProcId()
 
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			obtained, tc.expectedProcID, tc.description,
+
+		require.Equal(
+			t, obtained, tc.expectedProcID, tc.description,
 		)
-		s.Require().Equal(
-			p.cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, p.cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseMsgID() {
+func TestParseMsgID(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -1060,19 +1103,21 @@ func (s *RFC5424TestSuite) TestParseMsgID() {
 		p := NewParser([]byte(tc.input))
 		obtained, err := p.parseMsgId()
 
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			obtained, tc.expectedMsgID, tc.description,
+
+		require.Equal(
+			t, obtained, tc.expectedMsgID, tc.description,
 		)
-		s.Require().Equal(
-			p.cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, p.cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
 }
 
-func (s *RFC5424TestSuite) TestParseStructuredData() {
+func TestParseStructuredData(t *testing.T) {
 	testCases := []struct {
 		description       string
 		input             string
@@ -1118,16 +1163,45 @@ func (s *RFC5424TestSuite) TestParseStructuredData() {
 			len(tc.input),
 		)
 
-		s.Require().Equal(
-			err, tc.expectedErr, tc.description,
+		require.Equal(
+			t, err, tc.expectedErr, tc.description,
 		)
-		s.Require().Equal(
-			obtained, tc.expectedData, tc.description,
+
+		require.Equal(
+			t, obtained, tc.expectedData, tc.description,
 		)
-		s.Require().Equal(
-			cursor, tc.expectedCursorPos, tc.description,
+
+		require.Equal(
+			t, cursor, tc.expectedCursorPos, tc.description,
 		)
 	}
+}
+
+func TestParseMessageSizeChecks(t *testing.T) {
+	start := `<165>1 2003-10-11T22:14:15.003Z mymachine.example.com evntslog - ID47 [exampleSDID@32473 iut="3" eventSource="Application" eventID="1011"] `
+	msg := start + strings.Repeat("a", MAX_PACKET_LEN)
+
+	p := NewParser([]byte(msg))
+	err := p.Parse()
+	fields := p.Dump()
+
+	require.Nil(
+		t, err,
+	)
+
+	require.Len(
+		t, fields["message"], MAX_PACKET_LEN-len(start),
+	)
+
+	// ---
+
+	msg = start + " hello "
+	p = NewParser([]byte(msg))
+	err = p.Parse()
+	fields = p.Dump()
+
+	require.Nil(t, err)
+	require.Equal(t, fields["message"], "hello")
 }
 
 func BenchmarkParseTimestamp(b *testing.B) {
@@ -1146,7 +1220,9 @@ func BenchmarkParseTimestamp(b *testing.B) {
 }
 
 func BenchmarkParseHeader(b *testing.B) {
-	buff := []byte("<165>1 2003-10-11T22:14:15.003Z mymachine.example.com su 123 ID47")
+	buff := []byte(
+		"<165>1 2003-10-11T22:14:15.003Z mymachine.example.com su 123 ID47 ",
+	)
 
 	p := NewParser(buff)
 
@@ -1163,20 +1239,14 @@ func BenchmarkParseHeader(b *testing.B) {
 func BenchmarkParseFull(b *testing.B) {
 	msg := `<165>1 2003-10-11T22:14:15.003Z mymachine.example.com evntslog - ID47 [exampleSDID@32473 iut="3" eventSource="Application" eventID="1011"] An application event log entry...`
 
-	p := NewParser([]byte(msg))
-
 	for i := 0; i < b.N; i++ {
-		_, err := p.parseHeader()
+		p := NewParser(
+			[]byte(msg),
+		)
+
+		err := p.Parse()
 		if err != nil {
 			panic(err)
 		}
-
-		p.cursor = 0
 	}
-}
-
-func TestRFC5424TestSuite(t *testing.T) {
-	suite.Run(
-		t, new(RFC5424TestSuite),
-	)
 }

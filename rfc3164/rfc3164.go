@@ -2,19 +2,28 @@ package rfc3164
 
 import (
 	"bytes"
+	"math"
 	"time"
 
 	"github.com/jeromer/syslogparser"
+	"github.com/jeromer/syslogparser/parsercommon"
+)
+
+const (
+	// according to https://tools.ietf.org/html/rfc3164#section-4.1
+	// "The total length of the packet MUST be 1024 bytes or less"
+	// However we will accept a bit more while protecting from exhaustion
+	MAX_PACKET_LEN = 2048
 )
 
 type Parser struct {
 	buff          []byte
 	cursor        int
 	l             int
-	priority      syslogparser.Priority
+	priority      *parsercommon.Priority
 	version       int
-	header        header
-	message       rfc3164message
+	header        *header
+	message       *message
 	location      *time.Location
 	hostname      string
 	ParsePriority bool
@@ -25,7 +34,7 @@ type header struct {
 	hostname  string
 }
 
-type rfc3164message struct {
+type message struct {
 	tag     string
 	content string
 }
@@ -34,9 +43,14 @@ func NewParser(buff []byte) *Parser {
 	return &Parser{
 		buff:          buff,
 		cursor:        0,
-		l:             len(buff),
 		location:      time.UTC,
 		ParsePriority: true,
+		l: int(
+			math.Min(
+				float64(len(buff)),
+				MAX_PACKET_LEN,
+			),
+		),
 	}
 }
 
@@ -49,18 +63,19 @@ func (p *Parser) Hostname(hostname string) {
 }
 
 func (p *Parser) Parse() error {
+	p.priority = &parsercommon.Priority{
+		P: 0,
+		F: parsercommon.Facility{Value: 0},
+		S: parsercommon.Severity{Value: 0},
+	}
+
 	if p.ParsePriority {
 		pri, err := p.parsePriority()
 		if err != nil {
 			return err
 		}
+
 		p.priority = pri
-	} else {
-		p.priority = syslogparser.Priority{
-			P: 0,
-			F: syslogparser.Facility{Value: 0},
-			S: syslogparser.Severity{Value: 0},
-		}
 	}
 
 	hdr, err := p.parseHeader()
@@ -73,11 +88,11 @@ func (p *Parser) Parse() error {
 	}
 
 	msg, err := p.parsemessage()
-	if err != syslogparser.ErrEOL {
+	if err != parsercommon.ErrEOL {
 		return err
 	}
 
-	p.version = syslogparser.NO_VERSION
+	p.version = parsercommon.NO_VERSION
 	p.header = hdr
 	p.message = msg
 
@@ -91,54 +106,64 @@ func (p *Parser) Dump() syslogparser.LogParts {
 		"tag":       p.message.tag,
 		"content":   p.message.content,
 	}
+
 	if p.ParsePriority {
 		parts["priority"] = p.priority.P
 		parts["facility"] = p.priority.F.Value
 		parts["severity"] = p.priority.S.Value
 	}
+
 	return parts
 }
 
-func (p *Parser) parsePriority() (syslogparser.Priority, error) {
-	return syslogparser.ParsePriority(p.buff, &p.cursor, p.l)
+func (p *Parser) parsePriority() (*parsercommon.Priority, error) {
+	return parsercommon.ParsePriority(
+		p.buff, &p.cursor, p.l,
+	)
 }
 
-func (p *Parser) parseHeader() (header, error) {
-	hdr := header{}
+// HEADER: TIMESTAMP + HOSTNAME (or IP)
+// https://tools.ietf.org/html/rfc3164#section-4.1.2
+func (p *Parser) parseHeader() (*header, error) {
 	var err error
 
 	ts, err := p.parseTimestamp()
 	if err != nil {
-		return hdr, err
+		return nil, err
 	}
 
 	hostname, err := p.parseHostname()
 	if err != nil {
-		return hdr, err
+		return nil, err
 	}
 
-	hdr.timestamp = ts
-	hdr.hostname = hostname
+	h := &header{
+		timestamp: ts,
+		hostname:  hostname,
+	}
 
-	return hdr, nil
+	return h, nil
 }
 
-func (p *Parser) parsemessage() (rfc3164message, error) {
-	msg := rfc3164message{}
+// MSG: TAG + CONTENT
+// https://tools.ietf.org/html/rfc3164#section-4.1.3
+func (p *Parser) parsemessage() (*message, error) {
 	var err error
 
 	tag, err := p.parseTag()
 	if err != nil {
-		return msg, err
+		return nil, err
 	}
 
 	content, err := p.parseContent()
-	if err != syslogparser.ErrEOL {
-		return msg, err
+	if err != parsercommon.ErrEOL {
+		return nil, err
 	}
 
-	msg.tag = tag
-	msg.content = content
+	msg := &message{
+		tag:     tag,
+		content: content,
+	}
 
 	return msg, err
 }
@@ -180,7 +205,7 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 			p.cursor++
 		}
 
-		return ts, syslogparser.ErrTimestampUnknownFormat
+		return ts, parsercommon.ErrTimestampUnknownFormat
 	}
 
 	fixTimestampIfNeeded(&ts)
@@ -197,9 +222,11 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 func (p *Parser) parseHostname() (string, error) {
 	if p.hostname != "" {
 		return p.hostname, nil
-	} else {
-		return syslogparser.ParseHostname(p.buff, &p.cursor, p.l)
 	}
+
+	return parsercommon.ParseHostname(
+		p.buff, &p.cursor, p.l,
+	)
 }
 
 // http://tools.ietf.org/html/rfc3164#section-4.1.3
@@ -246,13 +273,16 @@ func (p *Parser) parseTag() (string, error) {
 
 func (p *Parser) parseContent() (string, error) {
 	if p.cursor > p.l {
-		return "", syslogparser.ErrEOL
+		return "", parsercommon.ErrEOL
 	}
 
-	content := bytes.Trim(p.buff[p.cursor:p.l], " ")
+	content := bytes.Trim(
+		p.buff[p.cursor:p.l], " ",
+	)
+
 	p.cursor += len(content)
 
-	return string(content), syslogparser.ErrEOL
+	return string(content), parsercommon.ErrEOL
 }
 
 func fixTimestampIfNeeded(ts *time.Time) {
@@ -263,8 +293,11 @@ func fixTimestampIfNeeded(ts *time.Time) {
 		y = now.Year()
 	}
 
-	newTs := time.Date(y, ts.Month(), ts.Day(), ts.Hour(), ts.Minute(),
-		ts.Second(), ts.Nanosecond(), ts.Location())
+	newTs := time.Date(
+		y, ts.Month(), ts.Day(),
+		ts.Hour(), ts.Minute(), ts.Second(), ts.Nanosecond(),
+		ts.Location(),
+	)
 
 	*ts = newTs
 }

@@ -112,34 +112,33 @@ Run `make benchmark`
     goos: linux
     goarch: amd64
     pkg: github.com/jeromer/syslogparser
-    BenchmarkParsePriority-8   	41772079	        31.2 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkParseVersion-8    	270007530	         4.45 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkDetectRFC-8       	78742269	        16.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkDetectRFC-8   	81994480	        14.7 ns/op	       0 B/op	       0 allocs/op
     PASS
-    ok  	github.com/jeromer/syslogparser	5.257s
+    ok  	github.com/jeromer/syslogparser	2.145s
 
     cd rfc3164 && go test -bench=. -benchmem
     goos: linux
     goarch: amd64
     pkg: github.com/jeromer/syslogparser/rfc3164
-    BenchmarkParseTimestamp-8   	 2693362	       467 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkParseHostname-8    	34919636	        32.8 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkParseTag-8         	20970715	        56.0 ns/op	       8 B/op	       1 allocs/op
-    BenchmarkParseHeader-8      	 2549106	       478 ns/op	      32 B/op	       2 allocs/op
-    BenchmarkParsemessage-8     	 8280796	       143 ns/op	      72 B/op	       3 allocs/op
-    BenchmarkParseFull-8        	 8070195	       139 ns/op	     120 B/op	       3 allocs/op
+    BenchmarkParseTimestamp-8   	 2823901	       416 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkParseHostname-8    	34796552	        35.4 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkParseTag-8         	20954252	        59.3 ns/op	       8 B/op	       1 allocs/op
+    BenchmarkParseHeader-8      	 2276569	       596 ns/op	      80 B/op	       3 allocs/op
+    BenchmarkParsemessage-8     	 6751579	       192 ns/op	     104 B/op	       4 allocs/op
+    BenchmarkParseFull-8        	 1445076	       838 ns/op	     336 B/op	      10 allocs/op
     PASS
-    ok  	github.com/jeromer/syslogparser/rfc3164	8.428s
 
+    ok  	github.com/jeromer/syslogparser/rfc3164	9.601s
     cd rfc5424 && go test -bench=. -benchmem
     goos: linux
     goarch: amd64
     pkg: github.com/jeromer/syslogparser/rfc5424
-    BenchmarkParseTimestamp-8   	  846019	      1385 ns/op	     352 B/op	      18 allocs/op
-    BenchmarkParseHeader-8      	 1424103	       840 ns/op	     106 B/op	      12 allocs/op
-    BenchmarkParseFull-8        	 1444834	       825 ns/op	     112 B/op	      12 allocs/op
+    BenchmarkParseTimestamp-8   	  790478	      1488 ns/op	     432 B/op	      21 allocs/op
+    BenchmarkParseHeader-8      	 1000000	      1043 ns/op	     336 B/op	      18 allocs/op
+    BenchmarkParseFull-8        	  980828	      1306 ns/op	     672 B/op	      21 allocs/op
     PASS
-    ok  	github.com/jeromer/syslogparser/rfc5424	6.195s
+    ok  	github.com/jeromer/syslogparser/rfc5424	4.356s
+
 
 [RFC 5424]: https://tools.ietf.org/html/rfc5424
 [RFC 3164]: https://tools.ietf.org/html/rfc3164
