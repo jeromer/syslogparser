@@ -26,7 +26,6 @@ func TestParser_Valid(t *testing.T) {
 
 	require.Equal(
 		t,
-		p,
 		&Parser{
 			buff:          buff,
 			cursor:        0,
@@ -34,6 +33,7 @@ func TestParser_Valid(t *testing.T) {
 			location:      time.UTC,
 			ParsePriority: true,
 		},
+		p,
 	)
 
 	err := p.Parse()
@@ -44,7 +44,6 @@ func TestParser_Valid(t *testing.T) {
 
 	require.Equal(
 		t,
-		p.Dump(),
 		syslogparser.LogParts{
 			"timestamp": time.Date(
 				time.Now().Year(),
@@ -59,6 +58,7 @@ func TestParser_Valid(t *testing.T) {
 			"facility": 4,
 			"severity": 2,
 		},
+		p.Dump(),
 	)
 }
 
@@ -72,7 +72,6 @@ func TestParser_WithoutPriority(t *testing.T) {
 
 	require.Equal(
 		t,
-		p,
 		&Parser{
 			buff:          buff,
 			cursor:        0,
@@ -80,6 +79,7 @@ func TestParser_WithoutPriority(t *testing.T) {
 			location:      time.UTC,
 			ParsePriority: false,
 		},
+		p,
 	)
 
 	err := p.Parse()
@@ -90,7 +90,6 @@ func TestParser_WithoutPriority(t *testing.T) {
 
 	require.Equal(
 		t,
-		p.Dump(),
 		syslogparser.LogParts{
 			"timestamp": time.Date(
 				time.Now().Year(),
@@ -102,6 +101,7 @@ func TestParser_WithoutPriority(t *testing.T) {
 			"tag":      "very.large.syslog.message.tag",
 			"content":  "'su root' failed for lonvick on /dev/pts/8",
 		},
+		p.Dump(),
 	)
 }
 
@@ -118,7 +118,6 @@ func TestParseWithout_Hostname(t *testing.T) {
 
 	require.Equal(
 		t,
-		p.Dump(),
 		syslogparser.LogParts{
 			"timestamp": time.Date(
 				time.Now().Year(),
@@ -133,6 +132,7 @@ func TestParseWithout_Hostname(t *testing.T) {
 			"facility": 3,
 			"severity": 6,
 		},
+		p.Dump(),
 	)
 }
 
@@ -185,15 +185,15 @@ func TestParseHeader(t *testing.T) {
 		obtained, err := p.parseHeader()
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedHdr, tc.description,
+			t, tc.expectedHdr, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, p.cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, p.cursor, tc.description,
 		)
 	}
 }
@@ -212,15 +212,15 @@ func TestParsemessage_Valid(t *testing.T) {
 	obtained, err := p.parsemessage()
 
 	require.Equal(
-		t, err, parsercommon.ErrEOL,
+		t, parsercommon.ErrEOL, err,
 	)
 
 	require.Equal(
-		t, obtained, msg,
+		t, msg, obtained,
 	)
 
 	require.Equal(
-		t, p.cursor, len(buff),
+		t, len(buff), p.cursor,
 	)
 }
 
@@ -281,15 +281,15 @@ func TestParseTimestamp(t *testing.T) {
 		obtained, err := p.parseTimestamp()
 
 		require.Equal(
-			t, obtained, tc.expectedTS, tc.description,
+			t, tc.expectedTS, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, p.cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, p.cursor, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 	}
 }
@@ -334,11 +334,11 @@ func TestParseTag(t *testing.T) {
 		)
 
 		require.Equal(
-			t, p.cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, p.cursor, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 	}
 }
@@ -355,11 +355,11 @@ func TestParseContent_Valid(t *testing.T) {
 	)
 
 	require.Equal(
-		t, obtained, content,
+		t, content, obtained,
 	)
 
 	require.Equal(
-		t, p.cursor, len(content),
+		t, len(content), p.cursor,
 	)
 }
 
@@ -376,7 +376,9 @@ func TestParseMessageSizeChecks(t *testing.T) {
 	)
 
 	require.Len(
-		t, fields["content"], MAX_PACKET_LEN-len(start),
+		t,
+		fields["content"],
+		MAX_PACKET_LEN-len(start),
 	)
 
 	// ---
@@ -386,8 +388,13 @@ func TestParseMessageSizeChecks(t *testing.T) {
 	err = p.Parse()
 	fields = p.Dump()
 
-	require.Nil(t, err)
-	require.Equal(t, fields["content"], "hello")
+	require.Nil(
+		t, err,
+	)
+
+	require.Equal(
+		t, "hello", fields["content"],
+	)
 }
 
 func BenchmarkParseTimestamp(b *testing.B) {

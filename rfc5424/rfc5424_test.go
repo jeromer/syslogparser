@@ -112,12 +112,12 @@ func TestParser(t *testing.T) {
 		p := NewParser(buff)
 		require.Equal(
 			t,
-			p,
 			&Parser{
 				buff:   buff,
 				cursor: 0,
 				l:      len(tc.input),
 			},
+			p,
 			tc.description,
 		)
 
@@ -127,7 +127,7 @@ func TestParser(t *testing.T) {
 		obtained := p.Dump()
 		for k, v := range obtained {
 			require.Equal(
-				t, v, tc.expectedParts[k], tc.description,
+				t, tc.expectedParts[k], v, tc.description,
 			)
 		}
 	}
@@ -241,11 +241,11 @@ func TestParseHeader(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedHdr, tc.description,
+			t, tc.expectedHdr, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, p.cursor, len(tc.input), tc.description,
+			t, len(tc.input), p.cursor, tc.description,
 		)
 	}
 }
@@ -335,12 +335,13 @@ func TestParseTimestamp(t *testing.T) {
 		obtained, err := p.parseTimestamp()
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
+
 		require.Equal(
 			t,
-			p.cursor,
 			tc.expectedCursorPos,
+			p.cursor,
 			tc.description,
 		)
 
@@ -359,11 +360,10 @@ func TestParseTimestamp(t *testing.T) {
 		tfmt := time.RFC3339Nano
 		require.Equal(
 			t,
-			obtained.Format(tfmt),
 			tc.expectedTS.Format(tfmt),
+			obtained.Format(tfmt),
 			tc.description,
 		)
-
 	}
 }
 
@@ -407,15 +407,15 @@ func TestParseYear(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedYear, tc.description,
+			t, tc.expectedYear, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -474,15 +474,15 @@ func TestParseMonth(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedMonth, tc.description,
+			t, tc.expectedMonth, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -541,15 +541,15 @@ func TestParseDay(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedDay, tc.description,
+			t, tc.expectedDay, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -594,15 +594,15 @@ func TestParseFullDate(t *testing.T) {
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedDate, tc.description,
+			t, tc.expectedDate, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -661,15 +661,15 @@ func TestParseHour(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedHour, tc.description,
+			t, tc.expectedHour, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -728,15 +728,15 @@ func TestParseMinute(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedMinute, tc.description,
+			t, tc.expectedMinute, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -795,15 +795,15 @@ func TestParseSecond(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedSecond, tc.description,
+			t, tc.expectedSecond, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -869,15 +869,15 @@ func TestParseSecFrac(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedSecFrac, tc.description,
+			t, tc.expectedSecFrac, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -886,16 +886,19 @@ func TestParseNumericalTimeOffset(t *testing.T) {
 	buff := []byte("+02:00")
 	cursor := 0
 	l := len(buff)
+
 	tmpTs, err := time.Parse("-07:00", string(buff))
 	require.Nil(t, err)
 
-	obtained, err := parseNumericalTimeOffset(buff, &cursor, l)
+	obtained, err := parseNumericalTimeOffset(
+		buff, &cursor, l,
+	)
+
 	require.Nil(t, err)
 
 	expected := tmpTs.Location()
-	require.Equal(t, obtained, expected)
-
-	require.Equal(t, cursor, 6)
+	require.Equal(t, expected, obtained)
+	require.Equal(t, 6, cursor)
 }
 
 func TestParseTimeOffset(t *testing.T) {
@@ -903,10 +906,13 @@ func TestParseTimeOffset(t *testing.T) {
 	cursor := 0
 	l := len(buff)
 
-	obtained, err := parseTimeOffset(buff, &cursor, l)
+	obtained, err := parseTimeOffset(
+		buff, &cursor, l,
+	)
+
 	require.Nil(t, err)
-	require.Equal(t, obtained, time.UTC)
-	require.Equal(t, cursor, 1)
+	require.Equal(t, time.UTC, obtained)
+	require.Equal(t, 1, cursor)
 }
 
 func TestGetHourMin(t *testing.T) {
@@ -922,10 +928,9 @@ func TestGetHourMin(t *testing.T) {
 	)
 
 	require.Nil(t, err)
-	require.Equal(t, obtainedH, expectedH)
-	require.Equal(t, obtainedM, expectedM)
-
-	require.Equal(t, cursor, l)
+	require.Equal(t, expectedH, obtainedH)
+	require.Equal(t, expectedM, obtainedM)
+	require.Equal(t, l, cursor)
 }
 
 func TestParsePartialTime(t *testing.T) {
@@ -945,8 +950,8 @@ func TestParsePartialTime(t *testing.T) {
 	}
 
 	require.Nil(t, err)
-	require.Equal(t, obtained, expected)
-	require.Equal(t, cursor, l)
+	require.Equal(t, expected, obtained)
+	require.Equal(t, l, cursor)
 }
 
 func TestParseFullTime(t *testing.T) {
@@ -973,8 +978,8 @@ func TestParseFullTime(t *testing.T) {
 	}
 
 	require.Nil(t, err)
-	require.Equal(t, obtained, expected)
-	require.Equal(t, cursor, 21)
+	require.Equal(t, expected, obtained)
+	require.Equal(t, 21, cursor)
 }
 
 func TestToNSec(t *testing.T) {
@@ -987,7 +992,7 @@ func TestToNSec(t *testing.T) {
 	for src, expected := range testCases {
 		obtained, err := toNSec(src)
 		require.Nil(t, err)
-		require.Equal(t, obtained, expected)
+		require.Equal(t, expected, obtained)
 	}
 }
 
@@ -1020,15 +1025,15 @@ func TestParseAppName(t *testing.T) {
 		obtained, err := p.parseAppName()
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedAppName, tc.description,
+			t, tc.expectedAppName, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, p.cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, p.cursor, tc.description,
 		)
 	}
 }
@@ -1062,15 +1067,15 @@ func TestParseProcID(t *testing.T) {
 		obtained, err := p.parseProcId()
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedProcID, tc.description,
+			t, tc.expectedProcID, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, p.cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, p.cursor, tc.description,
 		)
 	}
 }
@@ -1104,15 +1109,15 @@ func TestParseMsgID(t *testing.T) {
 		obtained, err := p.parseMsgId()
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedMsgID, tc.description,
+			t, tc.expectedMsgID, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, p.cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, p.cursor, tc.description,
 		)
 	}
 }
@@ -1164,15 +1169,15 @@ func TestParseStructuredData(t *testing.T) {
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedData, tc.description,
+			t, tc.expectedData, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 	}
 }
@@ -1190,7 +1195,9 @@ func TestParseMessageSizeChecks(t *testing.T) {
 	)
 
 	require.Len(
-		t, fields["message"], MAX_PACKET_LEN-len(start),
+		t,
+		fields["message"],
+		MAX_PACKET_LEN-len(start),
 	)
 
 	// ---
@@ -1201,7 +1208,7 @@ func TestParseMessageSizeChecks(t *testing.T) {
 	fields = p.Dump()
 
 	require.Nil(t, err)
-	require.Equal(t, fields["message"], "hello")
+	require.Equal(t, "hello", fields["message"])
 }
 
 func BenchmarkParseTimestamp(b *testing.B) {
