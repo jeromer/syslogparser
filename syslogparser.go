@@ -1,5 +1,5 @@
 // Package syslogparser implements functions to parsing RFC3164 or RFC5424 syslog messages.
-// syslogparser provide one subpackage per RFC.
+// syslogparser provides one subpackage per RFC with an example usage for which RFC.
 package syslogparser
 
 import (
@@ -22,6 +22,7 @@ type LogParser interface {
 	Parse() error
 	Dump() LogParts
 	Location(*time.Location)
+	Hostname(string)
 }
 
 func DetectRFC(buff []byte) (RFC, error) {
