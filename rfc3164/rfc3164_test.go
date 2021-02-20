@@ -137,6 +137,13 @@ func TestParseWithout_Hostname(t *testing.T) {
 }
 
 func TestParseHeader(t *testing.T) {
+	date := time.Date(
+		time.Now().Year(),
+		time.October,
+		11, 22, 14, 15, 0,
+		time.UTC,
+	)
+
 	testCases := []struct {
 		description       string
 		input             string
@@ -148,15 +155,20 @@ func TestParseHeader(t *testing.T) {
 			description: "valid headers",
 			input:       "Oct 11 22:14:15 mymachine ",
 			expectedHdr: &header{
-				hostname: "mymachine",
-				timestamp: time.Date(
-					time.Now().Year(),
-					time.October,
-					11, 22, 14, 15, 0,
-					time.UTC,
-				),
+				hostname:  "mymachine",
+				timestamp: date,
 			},
 			expectedCursorPos: 25,
+			expectedErr:       nil,
+		},
+		{
+			description: "valid headers with prepended space",
+			input:       " Oct 11 22:14:15 mymachine ",
+			expectedHdr: &header{
+				hostname:  "mymachine",
+				timestamp: date,
+			},
+			expectedCursorPos: 26,
 			expectedErr:       nil,
 		},
 		{

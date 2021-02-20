@@ -127,6 +127,10 @@ func (p *Parser) parsePriority() (*parsercommon.Priority, error) {
 func (p *Parser) parseHeader() (*header, error) {
 	var err error
 
+	if p.buff[p.cursor] == ' ' {
+		p.cursor++
+	}
+
 	ts, err := p.parseTimestamp()
 	if err != nil {
 		return nil, err
@@ -189,7 +193,10 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 		}
 
 		sub = p.buff[p.cursor : tsFmtLen+p.cursor]
-		ts, err = time.ParseInLocation(tsFmt, string(sub), p.location)
+		ts, err = time.ParseInLocation(
+			tsFmt, string(sub), p.location,
+		)
+
 		if err == nil {
 			found = true
 			break
