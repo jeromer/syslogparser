@@ -73,15 +73,15 @@ func TestParsePriority(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedPri, tc.description,
+			t, tc.expectedPri, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 	}
 }
@@ -89,12 +89,12 @@ func TestParsePriority(t *testing.T) {
 func TestNewPriority(t *testing.T) {
 	require.Equal(
 		t,
-		newPriority(165),
 		&Priority{
 			P: 165,
 			F: Facility{Value: 20},
 			S: Severity{Value: 5},
 		},
+		newPriority(165),
 	)
 }
 
@@ -137,15 +137,15 @@ func TestParseVersion(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedVersion, tc.description,
+			t, tc.expectedVersion, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 	}
 }
@@ -179,11 +179,11 @@ func TestParseHostname(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedHostname, tc.description,
+			t, tc.expectedHostname, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, cursor, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, cursor, tc.description,
 		)
 
 		require.Nil(
@@ -219,11 +219,11 @@ func TestFindNextSpace(t *testing.T) {
 		)
 
 		require.Equal(
-			t, obtained, tc.expectedCursorPos, tc.description,
+			t, tc.expectedCursorPos, obtained, tc.description,
 		)
 
 		require.Equal(
-			t, err, tc.expectedErr, tc.description,
+			t, tc.expectedErr, err, tc.description,
 		)
 	}
 }
