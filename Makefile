@@ -23,6 +23,7 @@ benchmark:
 	$(GO_BENCH)
 	cd rfc3164 && $(GO_BENCH)
 	cd rfc5424 && $(GO_BENCH)
+	cd parsercommon && $(GO_BENCH)
 
 lint:
 	golangci-lint run ./...
