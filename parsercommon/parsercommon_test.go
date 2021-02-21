@@ -59,7 +59,7 @@ func TestParsePriority(t *testing.T) {
 		{
 			description:       "all good",
 			input:             []byte("<190>"),
-			expectedPri:       newPriority(190),
+			expectedPri:       NewPriority(190),
 			expectedCursorPos: 5,
 			expectedErr:       nil,
 		},
@@ -94,7 +94,7 @@ func TestNewPriority(t *testing.T) {
 			F: Facility{Value: 20},
 			S: Severity{Value: 5},
 		},
-		newPriority(165),
+		NewPriority(165),
 	)
 }
 

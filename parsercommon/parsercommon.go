@@ -73,7 +73,7 @@ func ParsePriority(buff []byte, cursor *int, l int) (*Priority, error) {
 
 			*cursor = i + 1
 
-			return newPriority(priDigit), nil
+			return NewPriority(priDigit), nil
 		}
 
 		if IsDigit(c) {
@@ -121,7 +121,7 @@ func IsDigit(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
-func newPriority(p int) *Priority {
+func NewPriority(p int) *Priority {
 	// The Priority value is calculated by first multiplying the Facility
 	// number by 8 and then adding the numerical value of the Severity.
 
