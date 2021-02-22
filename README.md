@@ -3,6 +3,8 @@ Syslogparser
 
 This is a syslog parser for the Go programming language.
 
+https://pkg.go.dev/github.com/jeromer/syslogparser
+
 Installing
 ----------
 
