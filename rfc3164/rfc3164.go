@@ -17,16 +17,16 @@ const (
 )
 
 type Parser struct {
-	buff          []byte
-	cursor        int
-	l             int
-	priority      *parsercommon.Priority
-	version       int
-	header        *header
-	message       *message
-	location      *time.Location
-	hostname      string
-	ParsePriority bool
+	buff     []byte
+	cursor   int
+	l        int
+	priority *parsercommon.Priority
+	version  int
+	header   *header
+	message  *message
+	location *time.Location
+	hostname string
+	tmpTag   string
 }
 
 type header struct {
@@ -41,10 +41,9 @@ type message struct {
 
 func NewParser(buff []byte) *Parser {
 	return &Parser{
-		buff:          buff,
-		cursor:        0,
-		location:      time.UTC,
-		ParsePriority: true,
+		buff:     buff,
+		cursor:   0,
+		location: time.UTC,
 		l: int(
 			math.Min(
 				float64(len(buff)),
@@ -54,34 +53,52 @@ func NewParser(buff []byte) *Parser {
 	}
 }
 
-func (p *Parser) Location(location *time.Location) {
-	p.location = location
+// Forces a priority for this parser. Priority will not be parsed.
+func (p *Parser) WithPriority(pri *parsercommon.Priority) {
+	p.priority = pri
 }
 
+// Forces a location. UTC will be used otherwise.
+func (p *Parser) WithLocation(l *time.Location) {
+	p.location = l
+}
+
+// Forces a hostname. Hostname will not be parsed
+func (p *Parser) WithHostname(h string) {
+	p.hostname = h
+}
+
+// Forces a tag. Tag will not be parsed
+func (p *Parser) WithTag(t string) {
+	p.tmpTag = t
+}
+
+// DEPRECATED. Use WithLocation() instead
+func (p *Parser) Location(location *time.Location) {
+	p.WithLocation(location)
+}
+
+// DEPRECATED. Use WithHostname() instead
 func (p *Parser) Hostname(hostname string) {
-	p.hostname = hostname
+	p.WithHostname(hostname)
 }
 
 func (p *Parser) Parse() error {
-	p.priority = &parsercommon.Priority{
-		P: 0,
-		F: parsercommon.Facility{Value: 0},
-		S: parsercommon.Severity{Value: 0},
+	p.version = parsercommon.NO_VERSION
+
+	pri, err := p.parsePriority()
+	if err != nil {
+		return err
 	}
 
-	if p.ParsePriority {
-		pri, err := p.parsePriority()
-		if err != nil {
-			return err
-		}
-
-		p.priority = pri
-	}
+	p.priority = pri
 
 	hdr, err := p.parseHeader()
 	if err != nil {
 		return err
 	}
+
+	p.header = hdr
 
 	if p.buff[p.cursor] == ' ' {
 		p.cursor++
@@ -92,31 +109,28 @@ func (p *Parser) Parse() error {
 		return err
 	}
 
-	p.version = parsercommon.NO_VERSION
-	p.header = hdr
 	p.message = msg
 
 	return nil
 }
 
 func (p *Parser) Dump() syslogparser.LogParts {
-	parts := syslogparser.LogParts{
+	return syslogparser.LogParts{
 		"timestamp": p.header.timestamp,
 		"hostname":  p.header.hostname,
 		"tag":       p.message.tag,
 		"content":   p.message.content,
+		"priority":  p.priority.P,
+		"facility":  p.priority.F.Value,
+		"severity":  p.priority.S.Value,
 	}
-
-	if p.ParsePriority {
-		parts["priority"] = p.priority.P
-		parts["facility"] = p.priority.F.Value
-		parts["severity"] = p.priority.S.Value
-	}
-
-	return parts
 }
 
 func (p *Parser) parsePriority() (*parsercommon.Priority, error) {
+	if p.priority != nil {
+		return p.priority, nil
+	}
+
 	return parsercommon.ParsePriority(
 		p.buff, &p.cursor, p.l,
 	)
@@ -136,17 +150,17 @@ func (p *Parser) parseHeader() (*header, error) {
 		return nil, err
 	}
 
-	hostname, err := p.parseHostname()
+	h, err := p.parseHostname()
 	if err != nil {
 		return nil, err
 	}
 
-	h := &header{
+	hdr := &header{
 		timestamp: ts,
-		hostname:  hostname,
+		hostname:  h,
 	}
 
-	return h, nil
+	return hdr, nil
 }
 
 // MSG: TAG + CONTENT
@@ -238,6 +252,10 @@ func (p *Parser) parseHostname() (string, error) {
 
 // http://tools.ietf.org/html/rfc3164#section-4.1.3
 func (p *Parser) parseTag() (string, error) {
+	if p.tmpTag != "" {
+		return p.tmpTag, nil
+	}
+
 	var b byte
 	var endOfTag bool
 	var bracketOpen bool

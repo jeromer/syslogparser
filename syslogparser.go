@@ -21,8 +21,9 @@ type LogParts map[string]interface{}
 type LogParser interface {
 	Parse() error
 	Dump() LogParts
-	Location(*time.Location)
-	Hostname(string)
+	WithLocation(*time.Location)
+	WithHostname(string)
+	WithTag(string)
 }
 
 func DetectRFC(buff []byte) (RFC, error) {

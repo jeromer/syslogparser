@@ -27,11 +27,10 @@ func TestParser_Valid(t *testing.T) {
 	require.Equal(
 		t,
 		&Parser{
-			buff:          buff,
-			cursor:        0,
-			l:             len(buff),
-			location:      time.UTC,
-			ParsePriority: true,
+			buff:     buff,
+			cursor:   0,
+			l:        len(buff),
+			location: time.UTC,
 		},
 		p,
 	)
@@ -62,22 +61,24 @@ func TestParser_Valid(t *testing.T) {
 	)
 }
 
-func TestParser_WithoutPriority(t *testing.T) {
+func TestParser_WithPriority(t *testing.T) {
 	buff := []byte(
 		"Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8",
 	)
 
+	pri := parsercommon.NewPriority(0)
+
 	p := NewParser(buff)
-	p.ParsePriority = false
+	p.WithPriority(pri)
 
 	require.Equal(
 		t,
 		&Parser{
-			buff:          buff,
-			cursor:        0,
-			l:             len(buff),
-			location:      time.UTC,
-			ParsePriority: false,
+			buff:     buff,
+			cursor:   0,
+			l:        len(buff),
+			location: time.UTC,
+			priority: pri,
 		},
 		p,
 	)
@@ -100,18 +101,21 @@ func TestParser_WithoutPriority(t *testing.T) {
 			"hostname": "mymachine",
 			"tag":      "very.large.syslog.message.tag",
 			"content":  "'su root' failed for lonvick on /dev/pts/8",
+			"priority": 0,
+			"facility": 0,
+			"severity": 0,
 		},
 		p.Dump(),
 	)
 }
 
-func TestParseWithout_Hostname(t *testing.T) {
+func TestParser_WithHostname(t *testing.T) {
 	buff := []byte(
 		"<30>Jun 23 13:17:42 chronyd[1119]: Selected source 192.168.65.1",
 	)
 
 	p := NewParser(buff)
-	p.Hostname("testhost")
+	p.WithHostname("dummy")
 
 	err := p.Parse()
 	require.Nil(t, err)
@@ -125,12 +129,132 @@ func TestParseWithout_Hostname(t *testing.T) {
 				23, 13, 17, 42, 0,
 				time.UTC,
 			),
-			"hostname": "testhost",
+			"hostname": "dummy",
 			"tag":      "chronyd",
 			"content":  "Selected source 192.168.65.1",
 			"priority": 30,
 			"facility": 3,
 			"severity": 6,
+		},
+		p.Dump(),
+	)
+}
+
+func TestParser_WithTag(t *testing.T) {
+	buff := []byte(
+		"<30>Jun 23 13:17:42 localhost Selected source 192.168.65.1",
+	)
+
+	tag := "chronyd"
+	p := NewParser(buff)
+	p.WithTag(tag)
+
+	err := p.Parse()
+	require.Nil(t, err)
+
+	require.Equal(
+		t,
+		syslogparser.LogParts{
+			"timestamp": time.Date(
+				time.Now().Year(),
+				time.June,
+				23, 13, 17, 42, 0,
+				time.UTC,
+			),
+			"hostname": "localhost",
+			"tag":      "chronyd",
+			"content":  "Selected source 192.168.65.1",
+			"priority": 30,
+			"facility": 3,
+			"severity": 6,
+		},
+		p.Dump(),
+	)
+}
+
+func TestParser_WithLocation(t *testing.T) {
+	buff := []byte(
+		"<30>Jun 23 13:17:42 localhost foo: Selected source 192.168.65.1",
+	)
+
+	loc, err := time.LoadLocation("America/New_York")
+	require.Nil(t, err)
+
+	p := NewParser(buff)
+	p.WithLocation(loc)
+
+	err = p.Parse()
+	require.Nil(t, err)
+
+	require.Equal(
+		t,
+		syslogparser.LogParts{
+			"timestamp": time.Date(
+				time.Now().Year(),
+				time.June,
+				23, 13, 17, 42, 0,
+				loc,
+			),
+			"hostname": "localhost",
+			"tag":      "foo",
+			"content":  "Selected source 192.168.65.1",
+			"priority": 30,
+			"facility": 3,
+			"severity": 6,
+		},
+		p.Dump(),
+	)
+}
+
+func TestParser_WithPriorityHostnameTag(t *testing.T) {
+	buff := []byte(
+		"Oct 11 22:14:15 'su root' failed for lonvick on /dev/pts/8",
+	)
+
+	pri := parsercommon.NewPriority(0)
+	h := "mymachine"
+	tag := "foo"
+
+	p := NewParser(buff)
+	p.WithPriority(pri)
+	p.WithHostname(h)
+	p.WithTag(tag)
+
+	require.Equal(
+		t,
+		&Parser{
+			buff:     buff,
+			cursor:   0,
+			l:        len(buff),
+			location: time.UTC,
+			priority: pri,
+			hostname: h,
+			tmpTag:   tag,
+		},
+		p,
+	)
+
+	err := p.Parse()
+
+	require.Nil(
+		t, err,
+	)
+
+	require.Equal(
+		t,
+		syslogparser.LogParts{
+			"timestamp": time.Date(
+				time.Now().Year(),
+				time.October,
+				11, 22, 14, 15, 0,
+				time.UTC,
+			),
+			"hostname": h,
+			"tag":      tag,
+			"content":  "'su root' failed for lonvick on /dev/pts/8",
+			"priority": 0,
+			"facility": 0,
+			"severity": 0,
 		},
 		p.Dump(),
 	)

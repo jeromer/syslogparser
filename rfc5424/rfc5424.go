@@ -43,6 +43,9 @@ type Parser struct {
 	header         *header
 	structuredData string
 	message        string
+
+	tmpHostname string
+	tmpPriority *parsercommon.Priority
 }
 
 type header struct {
@@ -86,8 +89,28 @@ func NewParser(buff []byte) *Parser {
 	}
 }
 
+// Forces a priority for this parser. Priority will not be parsed.
+func (p *Parser) WithPriority(pri *parsercommon.Priority) {
+	p.tmpPriority = pri
+}
+
+// Noop as RFC5424 syslog always has a timezone
+func (p *Parser) WithLocation(l *time.Location) {
+}
+
+// Forces a hostname. Hostname will not be parsed
+func (p *Parser) WithHostname(h string) {
+	p.tmpHostname = h
+}
+
+// Noop as RFC5424 as no tag per se:
+// The TAG has been split into APP-NAME, PROCID, and MSGID.
+// Ref: https://tools.ietf.org/html/rfc5424#appendix-A.1
+func (p *Parser) WithTag(t string) {
+}
+
+// DEPRECATED. Use WithLocation() instead
 func (p *Parser) Location(location *time.Location) {
-	// Ignore as RFC5424 syslog always has a timezone
 }
 
 func (p *Parser) Parse() error {
@@ -159,7 +182,7 @@ func (p *Parser) parseHeader() (*header, error) {
 		return nil, err
 	}
 
-	p.cursor++
+	// cursor is moved in p.parseHostname()
 
 	appName, err := p.parseAppName()
 	if err != nil {
@@ -196,6 +219,10 @@ func (p *Parser) parseHeader() (*header, error) {
 }
 
 func (p *Parser) parsePriority() (*parsercommon.Priority, error) {
+	if p.tmpPriority != nil {
+		return p.tmpPriority, nil
+	}
+
 	return parsercommon.ParsePriority(
 		p.buff, &p.cursor, p.l,
 	)
@@ -258,7 +285,15 @@ func (p *Parser) parseTimestamp() (*time.Time, error) {
 
 // HOSTNAME = NILVALUE / 1*255PRINTUSASCII
 func (p *Parser) parseHostname() (string, error) {
-	return parsercommon.ParseHostname(p.buff, &p.cursor, p.l)
+	if p.tmpHostname != "" {
+		return p.tmpHostname, nil
+	}
+
+	h, err := parsercommon.ParseHostname(p.buff, &p.cursor, p.l)
+
+	p.cursor++
+
+	return h, err
 }
 
 // APP-NAME = NILVALUE / 1*48PRINTUSASCII

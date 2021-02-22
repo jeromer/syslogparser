@@ -133,6 +133,141 @@ func TestParser(t *testing.T) {
 	}
 }
 
+func TestParseWithHostname(t *testing.T) {
+	buff := []byte(
+		"<34>1 2003-10-11T22:14:15.003Z su - ID47 - 'su root' failed for lonvick on /dev/pts/8",
+	)
+
+	p := NewParser(buff)
+	p.WithHostname("mymachine.example.com")
+
+	require.Equal(
+		t,
+		&Parser{
+			buff:        buff,
+			cursor:      0,
+			l:           len(buff),
+			tmpHostname: "mymachine.example.com",
+		},
+		p,
+	)
+
+	err := p.Parse()
+	require.Nil(t, err)
+
+	require.Equal(
+		t, syslogparser.LogParts{
+			"priority": 34,
+			"facility": 4,
+			"severity": 2,
+			"version":  1,
+			"timestamp": time.Date(
+				2003, time.October, 11,
+				22, 14, 15, 3*10e5,
+				time.UTC,
+			),
+			"hostname":        "mymachine.example.com",
+			"app_name":        "su",
+			"proc_id":         "-",
+			"msg_id":          "ID47",
+			"structured_data": "-",
+			"message":         "'su root' failed for lonvick on /dev/pts/8",
+		}, p.Dump(),
+	)
+}
+
+func TestParseWithPriority(t *testing.T) {
+	buff := []byte(
+		"1 2003-10-11T22:14:15.003Z mymachine.example.com su - ID47 - 'su root' failed for lonvick on /dev/pts/8",
+	)
+
+	pri := parsercommon.NewPriority(34)
+
+	p := NewParser(buff)
+	p.WithPriority(pri)
+
+	require.Equal(
+		t,
+		&Parser{
+			buff:        buff,
+			cursor:      0,
+			l:           len(buff),
+			tmpPriority: pri,
+		},
+		p,
+	)
+
+	err := p.Parse()
+	require.Nil(t, err)
+
+	require.Equal(
+		t, syslogparser.LogParts{
+			"priority": 34,
+			"facility": 4,
+			"severity": 2,
+			"version":  1,
+			"timestamp": time.Date(
+				2003, time.October, 11,
+				22, 14, 15, 3*10e5,
+				time.UTC,
+			),
+			"hostname":        "mymachine.example.com",
+			"app_name":        "su",
+			"proc_id":         "-",
+			"msg_id":          "ID47",
+			"structured_data": "-",
+			"message":         "'su root' failed for lonvick on /dev/pts/8",
+		}, p.Dump(),
+	)
+}
+
+func TestParseWithPriorityAndHostname(t *testing.T) {
+	buff := []byte(
+		"1 2003-10-11T22:14:15.003Z su - ID47 - 'su root' failed for lonvick on /dev/pts/8",
+	)
+
+	pri := parsercommon.NewPriority(34)
+
+	p := NewParser(buff)
+	p.WithPriority(pri)
+	p.WithHostname("mymachine.example.com")
+
+	require.Equal(
+		t,
+		&Parser{
+			buff:        buff,
+			cursor:      0,
+			l:           len(buff),
+			tmpHostname: "mymachine.example.com",
+			tmpPriority: pri,
+		},
+		p,
+	)
+
+	err := p.Parse()
+	require.Nil(t, err)
+
+	require.Equal(
+		t, syslogparser.LogParts{
+			"priority": 34,
+			"facility": 4,
+			"severity": 2,
+			"version":  1,
+			"timestamp": time.Date(
+				2003, time.October, 11,
+				22, 14, 15, 3*10e5,
+				time.UTC,
+			),
+			"hostname":        "mymachine.example.com",
+			"app_name":        "su",
+			"proc_id":         "-",
+			"msg_id":          "ID47",
+			"structured_data": "-",
+			"message":         "'su root' failed for lonvick on /dev/pts/8",
+		}, p.Dump(),
+	)
+}
+
 func TestParseHeader(t *testing.T) {
 	ts := time.Date(2003, time.October, 11, 22, 14, 15, 3*10e5, time.UTC)
 	tsString := "2003-10-11T22:14:15.003Z"
