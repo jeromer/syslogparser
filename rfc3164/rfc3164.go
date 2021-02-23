@@ -17,16 +17,17 @@ const (
 )
 
 type Parser struct {
-	buff     []byte
-	cursor   int
-	l        int
-	priority *parsercommon.Priority
-	version  int
-	header   *header
-	message  *message
-	location *time.Location
-	hostname string
-	tmpTag   string
+	buff                  []byte
+	cursor                int
+	l                     int
+	priority              *parsercommon.Priority
+	version               int
+	header                *header
+	message               *message
+	location              *time.Location
+	hostname              string
+	customTag             string
+	customTimestampFormat string
 }
 
 type header struct {
@@ -70,7 +71,18 @@ func (p *Parser) WithHostname(h string) {
 
 // Forces a tag. Tag will not be parsed
 func (p *Parser) WithTag(t string) {
-	p.tmpTag = t
+	p.customTag = t
+}
+
+// Forces a given time format.
+// Refer to pkg/time layouts for more informations
+// By default the following formats will be tried in order:
+// Jan 02 15:04:05
+// Jan  2 15:04:05
+// The timezone MUST be specified using WithLocation() and
+// not using WithTimestampFormat
+func (p *Parser) WithTimestampFormat(s string) {
+	p.customTimestampFormat = s
 }
 
 // DEPRECATED. Use WithLocation() instead
@@ -198,6 +210,12 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 		"Jan  2 15:04:05",
 	}
 
+	if p.customTimestampFormat != "" {
+		tsFmts = []string{
+			p.customTimestampFormat,
+		}
+	}
+
 	found := false
 	for _, tsFmt := range tsFmts {
 		tsFmtLen = len(tsFmt)
@@ -252,8 +270,8 @@ func (p *Parser) parseHostname() (string, error) {
 
 // http://tools.ietf.org/html/rfc3164#section-4.1.3
 func (p *Parser) parseTag() (string, error) {
-	if p.tmpTag != "" {
-		return p.tmpTag, nil
+	if p.customTag != "" {
+		return p.customTag, nil
 	}
 
 	var b byte

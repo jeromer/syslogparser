@@ -206,6 +206,38 @@ func TestParser_WithLocation(t *testing.T) {
 	)
 }
 
+func TestParser_WithTimestampFormat(t *testing.T) {
+	buff := []byte(
+		"<30>2006-01-02T15:04:05 localhost foo: Selected source 192.168.65.1",
+	)
+
+	p := NewParser(buff)
+	p.WithTimestampFormat(
+		"2006-01-02T15:04:05",
+	)
+
+	err := p.Parse()
+	require.Nil(t, err)
+
+	require.Equal(
+		t,
+		syslogparser.LogParts{
+			"timestamp": time.Date(
+				2006, time.January, 2,
+				15, 4, 5, 0,
+				time.UTC,
+			),
+			"hostname": "localhost",
+			"tag":      "foo",
+			"content":  "Selected source 192.168.65.1",
+			"priority": 30,
+			"facility": 3,
+			"severity": 6,
+		},
+		p.Dump(),
+	)
+}
+
 func TestParser_WithPriorityHostnameTag(t *testing.T) {
 	buff := []byte(
 		"Oct 11 22:14:15 'su root' failed for lonvick on /dev/pts/8",
@@ -223,13 +255,13 @@ func TestParser_WithPriorityHostnameTag(t *testing.T) {
 	require.Equal(
 		t,
 		&Parser{
-			buff:     buff,
-			cursor:   0,
-			l:        len(buff),
-			location: time.UTC,
-			priority: pri,
-			hostname: h,
-			tmpTag:   tag,
+			buff:      buff,
+			cursor:    0,
+			l:         len(buff),
+			location:  time.UTC,
+			priority:  pri,
+			hostname:  h,
+			customTag: tag,
 		},
 		p,
 	)

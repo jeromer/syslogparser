@@ -95,8 +95,10 @@ func (p *Parser) WithPriority(pri *parsercommon.Priority) {
 }
 
 // Noop as RFC5424 syslog always has a timezone
-func (p *Parser) WithLocation(l *time.Location) {
-}
+func (p *Parser) WithLocation(l *time.Location) {}
+
+// Noop as RFC5424 is strict about timestamp format
+func (p *Parser) WithTimestampFormat(s string) {}
 
 // Forces a hostname. Hostname will not be parsed
 func (p *Parser) WithHostname(h string) {

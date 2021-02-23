@@ -21,6 +21,7 @@ type LogParts map[string]interface{}
 type LogParser interface {
 	Parse() error
 	Dump() LogParts
+	WithTimestampFormat(string)
 	WithLocation(*time.Location)
 	WithHostname(string)
 	WithTag(string)
