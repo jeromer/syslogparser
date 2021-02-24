@@ -17,7 +17,7 @@ var (
 	lastTriedTimestampLen = 15
 )
 
-func TestParser_Valid(t *testing.T) {
+func TestParserValid(t *testing.T) {
 	buff := []byte(
 		"<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8",
 	)
@@ -61,7 +61,7 @@ func TestParser_Valid(t *testing.T) {
 	)
 }
 
-func TestParser_WithPriority(t *testing.T) {
+func TestParserWithPriority(t *testing.T) {
 	buff := []byte(
 		"Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8",
 	)
@@ -109,7 +109,7 @@ func TestParser_WithPriority(t *testing.T) {
 	)
 }
 
-func TestParser_WithHostname(t *testing.T) {
+func TestParserWithHostname(t *testing.T) {
 	buff := []byte(
 		"<30>Jun 23 13:17:42 chronyd[1119]: Selected source 192.168.65.1",
 	)
@@ -140,7 +140,7 @@ func TestParser_WithHostname(t *testing.T) {
 	)
 }
 
-func TestParser_WithTag(t *testing.T) {
+func TestParserWithTag(t *testing.T) {
 	buff := []byte(
 		"<30>Jun 23 13:17:42 localhost Selected source 192.168.65.1",
 	)
@@ -172,7 +172,7 @@ func TestParser_WithTag(t *testing.T) {
 	)
 }
 
-func TestParser_WithLocation(t *testing.T) {
+func TestParserWithLocation(t *testing.T) {
 	buff := []byte(
 		"<30>Jun 23 13:17:42 localhost foo: Selected source 192.168.65.1",
 	)
@@ -206,7 +206,7 @@ func TestParser_WithLocation(t *testing.T) {
 	)
 }
 
-func TestParser_WithTimestampFormat(t *testing.T) {
+func TestParserWithTimestampFormat(t *testing.T) {
 	buff := []byte(
 		"<30>2006-01-02T15:04:05 localhost foo: Selected source 192.168.65.1",
 	)
@@ -238,7 +238,7 @@ func TestParser_WithTimestampFormat(t *testing.T) {
 	)
 }
 
-func TestParser_WithPriorityHostnameTag(t *testing.T) {
+func TestParserWithPriorityHostnameTag(t *testing.T) {
 	buff := []byte(
 		"Oct 11 22:14:15 'su root' failed for lonvick on /dev/pts/8",
 	)
@@ -354,7 +354,7 @@ func TestParseHeader(t *testing.T) {
 	}
 }
 
-func TestParsemessage_Valid(t *testing.T) {
+func TestParsemessage(t *testing.T) {
 	content := "foo bar baz blah quux"
 
 	buff := []byte("sometag[123]: " + content)
@@ -479,6 +479,13 @@ func TestParseTag(t *testing.T) {
 			expectedCursorPos: 9,
 			expectedErr:       nil,
 		},
+		{
+			description:       "super long",
+			input:             strings.Repeat("a", 50) + "",
+			expectedTag:       strings.Repeat("a", 32),
+			expectedCursorPos: 32,
+			expectedErr:       nil,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -499,7 +506,7 @@ func TestParseTag(t *testing.T) {
 	}
 }
 
-func TestParseContent_Valid(t *testing.T) {
+func TestParseContent(t *testing.T) {
 	buff := []byte(" foo bar baz quux ")
 	content := string(bytes.Trim(buff, " "))
 
@@ -550,6 +557,35 @@ func TestParseMessageSizeChecks(t *testing.T) {
 
 	require.Equal(
 		t, "hello", fields["content"],
+	)
+}
+
+func TestParseWithoutTag(t *testing.T) {
+	buff := []byte("<30>Jun 23 13:17:42 127.0.0.1 java.lang.NullPointerException")
+
+	p := NewParser(buff)
+
+	err := p.Parse()
+	require.Nil(t, err)
+
+	now := time.Now()
+
+	obtained := p.Dump()
+	expected := syslogparser.LogParts{
+		"timestamp": time.Date(
+			now.Year(), time.June, 23,
+			13, 17, 42, 0, time.UTC,
+		),
+		"hostname": "127.0.0.1",
+		"tag":      "java.lang.NullPointerException",
+		"content":  "",
+		"priority": 30,
+		"facility": 3,
+		"severity": 6,
+	}
+
+	require.Equal(
+		t, expected, obtained,
 	)
 }
 
@@ -640,5 +676,107 @@ func BenchmarkParseFull(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+func TestBenchmarkParseTimestamp(t *testing.T) {
+	type args struct {
+		b *testing.B
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			BenchmarkParseTimestamp(tt.args.b)
+		})
+	}
+}
+
+func TestBenchmarkParseHostname(t *testing.T) {
+	type args struct {
+		b *testing.B
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			BenchmarkParseHostname(tt.args.b)
+		})
+	}
+}
+
+func TestBenchmarkParseTag(t *testing.T) {
+	type args struct {
+		b *testing.B
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			BenchmarkParseTag(tt.args.b)
+		})
+	}
+}
+
+func TestBenchmarkParseHeader(t *testing.T) {
+	type args struct {
+		b *testing.B
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			BenchmarkParseHeader(tt.args.b)
+		})
+	}
+}
+
+func TestBenchmarkParsemessage(t *testing.T) {
+	type args struct {
+		b *testing.B
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			BenchmarkParsemessage(tt.args.b)
+		})
+	}
+}
+
+func TestBenchmarkParseFull(t *testing.T) {
+	type args struct {
+		b *testing.B
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			BenchmarkParseFull(tt.args.b)
+		})
 	}
 }
