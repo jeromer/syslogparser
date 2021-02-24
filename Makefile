@@ -10,7 +10,7 @@ GO_TEST_TIMEOUT ?= 		15s
 
 GO_BENCH=go test -bench=. -benchmem
 
-all: test
+all: lint test benchmark
 
 test:
 	$(GO) test                      \
@@ -18,8 +18,12 @@ test:
 		-timeout $(GO_TEST_TIMEOUT) \
 		$(GO_TEST_PKGS)
 
-#XXX: ugly
+#FIXME
 benchmark:
 	$(GO_BENCH)
 	cd rfc3164 && $(GO_BENCH)
 	cd rfc5424 && $(GO_BENCH)
+	cd parsercommon && $(GO_BENCH)
+
+lint:
+	golangci-lint run ./...
