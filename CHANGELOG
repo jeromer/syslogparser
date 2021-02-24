@@ -1,0 +1,7 @@
+v1.1.0:
+
+- Fix panic when parsing tag (35ba9b8)
+
+v1.0.0:
+
+- Initial release (d8748a1)
